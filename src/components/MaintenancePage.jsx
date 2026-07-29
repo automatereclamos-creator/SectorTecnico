@@ -5,7 +5,7 @@ import { supabase } from '../config/supabase';
 const MaintenancePage = ({ email }) => {
   return (
     <div style={{
-      height: '100vh',
+      minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -13,7 +13,6 @@ const MaintenancePage = ({ email }) => {
       padding: '20px',
       textAlign: 'center',
       transition: 'background-color var(--transition)',
-      overflow: 'hidden',
       position: 'relative'
     }}>
       {/* Animated background gears */}
@@ -76,6 +75,15 @@ const MaintenancePage = ({ email }) => {
           height: 220px;
           object-fit: contain;
           border-radius: 50%;
+        }
+        @media (max-width: 480px) {
+          .maintenance-monkey-container img {
+            width: 180px;
+            height: 180px;
+          }
+          .maintenance-card {
+            padding: 25px 18px !important;
+          }
         }
       `}</style>
 
