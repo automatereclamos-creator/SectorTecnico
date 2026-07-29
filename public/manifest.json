@@ -1,0 +1,18 @@
+{
+  "name": "Soluciones — Panel de Gestión Técnica",
+  "short_name": "Soluciones",
+  "description": "Sistema de gestión técnica para soporte, reclamos, inventario y relevamientos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
