@@ -135,7 +135,8 @@ function App() {
         }
 
         if (perfil && perfil.activo) {
-          setRol(perfil.rol);
+          const rolNormalizado = perfil.rol ? String(perfil.rol).toLowerCase().trim() : null;
+          setRol(rolNormalizado);
           setNombreUsuario(perfil.nombre_completo);
           perfilCargadoRef.current = true;
 
