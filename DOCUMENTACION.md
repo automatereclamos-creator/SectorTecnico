@@ -136,3 +136,6 @@ Para asegurar la adopción exitosa y erradicar el uso informal de WhatsApp sin r
 1.  **Fase 1: Carga Dual (1 semana)**: El personal continúa informando en WhatsApp pero soporte registra de forma obligatoria los tickets en la web SIG.
 2.  **Fase 2: Monitoreo Activo (Semana 2)**: Los técnicos en campo comienzan a cargar relevamientos directamente desde su dispositivo móvil. El TV Dashboard es el único elemento visual de control en la oficina central.
 3.  **Fase 3: Apagado de Informes Libres (Semana 3 en adelante)**: Solo se atienden y despachan incidentes que posean número de ticket en la plataforma SIG. WhatsApp queda relegado a notificaciones urgentes automáticas enviadas por la propia aplicación.
+
+
+Desarrollado por Carlos Aguilar.
