@@ -143,16 +143,16 @@ function App() {
           // Solo configurar vista inicial si NO hay una guardada previamente en localStorage
           const vistaGuardada = localStorage.getItem('vistaActual');
           if (!vistaGuardada || vistaGuardada === 'menu') {
-            if (['encargado', 'admin', 'soporte'].includes(perfil.rol)) {
+            if (['encargado', 'admin', 'soporte'].includes(rolNormalizado)) {
               setVistaTecnico('panel');
-            } else if (perfil.rol === 'tecnico') {
+            } else if (rolNormalizado === 'tecnico') {
               setVistaTecnico('soporte');
             }
           }
 
           // Solo aplicar tema por defecto si el usuario nunca eligió uno
           if (!localStorage.getItem('crm-theme')) {
-            if (['encargado', 'admin', 'soporte'].includes(perfil.rol)) {
+            if (['encargado', 'admin', 'soporte'].includes(rolNormalizado)) {
               setTheme('light');
             } else {
               setTheme('dark');
@@ -183,7 +183,7 @@ function App() {
   if (cargando) return <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text-main)', fontFamily: 'system-ui, sans-serif' }}>Cargando sistema...</div>;
   if (!usuario) return <Login />;
   if (!rol) return <AccessDenied email={usuario.email} />;
-  if (rol === 'mantenimiento') return <MaintenancePage email={usuario.email} />;
+  if (rol && rol.toLowerCase().trim() === 'mantenimiento') return <MaintenancePage email={usuario.email} />;
 
   if (modoTV && (rol === 'admin' || rol === 'soporte')) {
     return <TvDashboard onVolver={() => setModoTV(false)} />;

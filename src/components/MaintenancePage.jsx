@@ -116,6 +116,7 @@ const MaintenancePage = ({ email }) => {
             src="https://media.tenor.com/TpW10D1VIH8AAAAj/simpsons-monkey.gif"
             alt="Mono de los Simpsons tocando los platillos"
             loading="eager"
+            referrerPolicy="no-referrer"
           />
         </div>
 
