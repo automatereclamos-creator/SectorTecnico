@@ -8,6 +8,7 @@ import MainMenu from './components/MainMenu';
 import RelevamientoForm from './components/RelevamientoForm';
 import RelevamientoViewerMobile from './components/RelevamientoViewerMobile';
 import AccessDenied from './components/AccessDenied';
+import MaintenancePage from './components/MaintenancePage';
 import PanelOperativo from './components/PanelOperativo';
 import MiRutaManager from './components/MiRutaManager';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -181,6 +182,7 @@ function App() {
   if (cargando) return <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text-main)', fontFamily: 'system-ui, sans-serif' }}>Cargando sistema...</div>;
   if (!usuario) return <Login />;
   if (!rol) return <AccessDenied email={usuario.email} />;
+  if (rol === 'mantenimiento') return <MaintenancePage email={usuario.email} />;
 
   if (modoTV && (rol === 'admin' || rol === 'soporte')) {
     return <TvDashboard onVolver={() => setModoTV(false)} />;
