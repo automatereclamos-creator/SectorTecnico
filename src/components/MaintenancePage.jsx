@@ -1,8 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { supabase } from '../config/supabase';
 
 const MaintenancePage = ({ email }) => {
+  const [extraMonkeys, setExtraMonkeys] = useState([]);
+
+  const handleTrollClick = (e) => {
+    e.preventDefault();
+    const top = Math.floor(Math.random() * 70) + 10;
+    const left = Math.floor(Math.random() * 70) + 10;
+    const size = Math.floor(Math.random() * 80) + 110;
+    const rotate = Math.floor(Math.random() * 60) - 30;
+
+    setExtraMonkeys((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        top,
+        left,
+        size,
+        rotate,
+      },
+    ]);
+  };
+
+  const handleRealSignOut = () => {
+    supabase.auth.signOut();
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -13,9 +38,10 @@ const MaintenancePage = ({ email }) => {
       padding: '20px',
       textAlign: 'center',
       transition: 'background-color var(--transition)',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      {/* Animated background gears */}
+      {/* Animated background gears & popIn keyframes */}
       <style>{`
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
@@ -30,14 +56,19 @@ const MaintenancePage = ({ email }) => {
           50% { transform: translateY(-10px); }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.1), 0 0 40px rgba(251, 191, 36, 0.05); }
-          50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.2), 0 0 60px rgba(251, 191, 36, 0.1); }
+          0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.2), 0 0 40px rgba(251, 191, 36, 0.1); }
+          50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.4), 0 0 70px rgba(251, 191, 36, 0.2); }
         }
         @keyframes dots {
           0% { content: ''; }
           25% { content: '.'; }
           50% { content: '..'; }
           75% { content: '...'; }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+          70% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
         .maintenance-dots::after {
           content: '';
@@ -68,6 +99,14 @@ const MaintenancePage = ({ email }) => {
           margin: 0 auto 20px;
           border-radius: 50%;
           animation: pulse-glow 3s ease-in-out infinite;
+          cursor: pointer;
+          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .maintenance-monkey-container:hover {
+          transform: scale(1.08);
+        }
+        .maintenance-monkey-container:active {
+          transform: scale(0.95);
         }
         .maintenance-monkey-container img {
           display: block;
@@ -75,6 +114,9 @@ const MaintenancePage = ({ email }) => {
           height: 220px;
           object-fit: contain;
           border-radius: 50%;
+        }
+        .extra-troll-monkey {
+          animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @media (max-width: 480px) {
           .maintenance-monkey-container img {
@@ -86,6 +128,34 @@ const MaintenancePage = ({ email }) => {
           }
         }
       `}</style>
+
+      {/* Spawned extra troll monkeys */}
+      {extraMonkeys.map((m) => (
+        <div
+          key={m.id}
+          className="extra-troll-monkey"
+          style={{
+            position: 'fixed',
+            top: `${m.top}%`,
+            left: `${m.left}%`,
+            zIndex: 9999,
+            transform: `rotate(${m.rotate}deg)`,
+            pointerEvents: 'none',
+          }}
+        >
+          <img
+            src="https://media.tenor.com/TpW10D1VIH8AAAAj/simpsons-monkey.gif"
+            alt="Mono troll extra"
+            style={{
+              width: `${m.size}px`,
+              height: `${m.size}px`,
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.6))',
+            }}
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      ))}
 
       {/* Decorative background gears */}
       <svg className="maintenance-gear-1" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="0.5">
@@ -109,9 +179,12 @@ const MaintenancePage = ({ email }) => {
         zIndex: 2
       }}>
 
-
-        {/* Monkey GIF centered */}
-        <div className="maintenance-monkey-container">
+        {/* Monkey GIF centered — Clicking HERE actually logs out */}
+        <div
+          className="maintenance-monkey-container"
+          onClick={handleRealSignOut}
+          title="Click en el mono para cerrar sesión"
+        >
           <img
             src="https://media.tenor.com/TpW10D1VIH8AAAAj/simpsons-monkey.gif"
             alt="Mono de los Simpsons tocando los platillos"
@@ -180,8 +253,9 @@ const MaintenancePage = ({ email }) => {
           </p>
         )}
 
+        {/* Troll button: Clicking spawns extra monkeys */}
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={handleTrollClick}
           style={{
             width: '100%',
             padding: '12px',
