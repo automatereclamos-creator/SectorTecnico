@@ -31,7 +31,7 @@ src/
 Para mantener los componentes limpios, el sistema utiliza un patrón de tres capas:
 1.  **Componente (`components/`)**: Se encarga puramente de pintar la interfaz y manejar eventos de usuario.
 2.  **Custom Hook (`hooks/`)**: Maneja el estado local del componente, reglas de negocio y orquesta las llamadas asíncronas. Ejemplo: `useMantenimientoForm.js`, `useInventario.js`.
-3.  **Servicio (`services/`)**: Ejecuta exclusivamente las consultas a la base de datos (Supabase). Ejemplo: `storageService.js`, `agenciasService.js`.
+3.  **Servicio (`services/`)**: Ejecuta exclusivamente las consultas a la base de datos (Supabase). Ejemplo: `storageService.js`, `agenciasService.js`. ss
 
 ## 3. Flujo Principal y Enrutamiento (`App.jsx`)
 
