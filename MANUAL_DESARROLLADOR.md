@@ -62,7 +62,7 @@ Si necesitas agregar, por ejemplo, un módulo de "Vehículos":
     Crea la interfaz de usuario. Importa tu hook y bindea los datos a la tabla/formulario.
 5.  **Enrutamiento (`App.jsx`)**:
     *   Agrega la nueva vista al estado y al render (ej. `<div style={{ display: vistaTecnico === 'vehiculos' ? 'block' : 'none' }}>...`).
-    *   No olvides agregar el permiso en `constants/roles.js` y el botón de navegación en el menú o panel lateral correspondiente (`MainMenu.jsx` o `PanelOperativo.jsx`).
+    *   No olvides agregar el permiso en `constants/roles.js` y el botón de navegación en el menú o panel lateral correspondiente (`MainMenu.jsx` o `PanelOperativo.jsx`)
 
 ### B. Cómo modificar formularios existentes
 Si entras a modificar formularios como el `RelevamientoForm.jsx` o el `TaskForm.jsx` (que a veces ha presentado problemas en la inserción de DB):
