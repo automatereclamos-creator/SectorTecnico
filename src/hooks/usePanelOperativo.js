@@ -33,18 +33,21 @@ export const usePanelOperativo = (rolActual, emailUsuario) => {
   }, [rolActual, emailUsuario]);
 
   const accesoPermitido = useMemo(() => {
-    return ['encargado', 'admin', 'auditor', 'soporte'].includes(rolActual);
+    return ['encargado', 'admin', 'auditor', 'soporte', 'encargado_stock'].includes(rolActual);
   }, [rolActual]);
 
   const seccionesMenu = useMemo(() => {
     return MENU_CONFIG.reduce((acc, item) => {
-      if (item.adminOnly && rolActual !== 'admin') {
+      if (item.adminOnly && rolActual !== 'admin' && !(item.id === 'insumos' && rolActual === 'encargado_stock')) {
         return acc;
       }
       if (rolActual === 'soporte' && !['inicio', 'reclamos', 'soluciones'].includes(item.id)) {
         return acc;
       }
       if (rolActual === 'encargado' && !['inicio', 'tareas'].includes(item.id)) {
+        return acc;
+      }
+      if (rolActual === 'encargado_stock' && !['inicio', 'soluciones', 'inventario', 'insumos'].includes(item.id)) {
         return acc;
       }
       if (!acc[item.seccion]) acc[item.seccion] = [];
@@ -64,8 +67,11 @@ export const usePanelOperativo = (rolActual, emailUsuario) => {
     if (rolActual === 'encargado' && !['inicio', 'tareas'].includes(modulo)) {
       return;
     }
+    if (rolActual === 'encargado_stock' && !['inicio', 'soluciones', 'inventario', 'insumos'].includes(modulo)) {
+      return;
+    }
     const targetItem = MENU_CONFIG.find(m => m.id === modulo);
-    if (targetItem?.adminOnly && rolActual !== 'admin') {
+    if (targetItem?.adminOnly && rolActual !== 'admin' && !(targetItem.id === 'insumos' && rolActual === 'encargado_stock')) {
       return;
     }
     setModuloActivo(modulo);
@@ -75,6 +81,8 @@ export const usePanelOperativo = (rolActual, emailUsuario) => {
     if (rolActual === 'encargado' && !['inicio', 'tareas'].includes(moduloActivo)) {
       setModuloActivo('inicio');
     } else if (rolActual === 'soporte' && !['inicio', 'reclamos', 'soluciones'].includes(moduloActivo)) {
+      setModuloActivo('inicio');
+    } else if (rolActual === 'encargado_stock' && !['inicio', 'soluciones', 'inventario', 'insumos'].includes(moduloActivo)) {
       setModuloActivo('inicio');
     }
   }, [rolActual, moduloActivo]);

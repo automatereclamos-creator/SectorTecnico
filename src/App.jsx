@@ -143,7 +143,7 @@ function App() {
           // Solo configurar vista inicial si NO hay una guardada previamente en localStorage
           const vistaGuardada = localStorage.getItem('vistaActual');
           if (!vistaGuardada || vistaGuardada === 'menu') {
-            if (['encargado', 'admin', 'soporte'].includes(rolNormalizado)) {
+            if (['encargado', 'admin', 'soporte', 'encargado_stock'].includes(rolNormalizado)) {
               setVistaTecnico('panel');
             } else if (rolNormalizado === 'tecnico') {
               setVistaTecnico('soporte');
@@ -152,7 +152,7 @@ function App() {
 
           // Solo aplicar tema por defecto si el usuario nunca eligió uno
           if (!localStorage.getItem('crm-theme')) {
-            if (['encargado', 'admin', 'soporte'].includes(rolNormalizado)) {
+            if (['encargado', 'admin', 'soporte', 'encargado_stock'].includes(rolNormalizado)) {
               setTheme('light');
             } else {
               setTheme('dark');

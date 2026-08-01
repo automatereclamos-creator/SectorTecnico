@@ -6,7 +6,7 @@ export const useUsuariosManager = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [mensaje, setMensaje] = useState({ text: '', type: '' });
 
-    const ROLES_DISPONIBLES = ['admin', 'encargado', 'auditor', 'soporte', 'tecnico', 'mantenimiento'];
+    const ROLES_DISPONIBLES = ['admin', 'encargado', 'encargado_stock', 'auditor', 'soporte', 'tecnico', 'mantenimiento'];
 
     const mostrarMensaje = (text, type) => {
         setMensaje({ text, type });

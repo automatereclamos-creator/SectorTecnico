@@ -9,6 +9,6 @@ export const PERMISOS = {
   relevamiento: ['auditor', 'admin'],
   visor: ['auditor', 'admin'],
   pizarra: ['admin'],
-  panel: ['admin', 'encargado', 'soporte'],
+  panel: ['admin', 'encargado', 'soporte', 'encargado_stock'],
   ruta: ['tecnico', 'admin']
 };
