@@ -86,6 +86,7 @@ const TaskForm = ({ userEmail }) => {
                 <option value="Palpitos">Palpitos</option>
                 <option value="Alfa">Alfa</option>
                 <option value="TucuApuestas">TucuApuestas</option>
+                <option value="Otros">Otros</option>
               </select>
               {empresaBloqueada && <span style={{ fontSize: '0.7rem', color: 'var(--text-hint)', marginTop: '4px' }}>Empresa bloqueada mientras haya agencias en la lista</span>}
             </div>
@@ -269,7 +270,7 @@ const TaskForm = ({ userEmail }) => {
             <div className="field">
               <label>Empresa</label>
               <select
-                className={`empresa-select ${formData.empresa.toLowerCase()}`}
+                className={`empresa-select ${(formData.empresa || '').toLowerCase()}`}
                 name="empresa"
                 value={formData.empresa}
                 onChange={handleEmpresaChange}

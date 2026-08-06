@@ -217,7 +217,7 @@ export const useTaskForm = (userEmail = '') => {
     const val = e.target.value.trim();
     setFormData(prev => ({ ...prev, id: val, agencia_uuid: null }));
 
-    if (formData.empresa === "Otros" || !formData.empresa) {
+    if (!formData.empresa) {
       setIdHint({ text: '', type: '', found: null });
       return;
     }

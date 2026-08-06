@@ -49,7 +49,7 @@ async function _loadCache() {
  * Retorna el objeto { nombre, telefono } si existe, o null si no.
  */
 export async function buscarAgencia(empresa, idAgencia) {
-  if (!empresa || !idAgencia || empresa === 'Otros') return null;
+  if (!empresa || !idAgencia) return null;
   const mapa = await _loadCache();
   const empKey = empresa.trim().toLowerCase();
   return mapa[empKey]?.[idAgencia] || null;

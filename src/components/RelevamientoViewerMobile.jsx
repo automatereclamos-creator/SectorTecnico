@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Database, RefreshCw, FileText, Printer, Monitor, Cpu, Eye, X, Pencil, Save, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Database, RefreshCw, FileText, Printer, Monitor, Cpu, Eye, X, Pencil, Save, Trash2, CheckSquare, Square } from 'lucide-react';
 import { useRelevamientoViewer } from '../hooks/useRelevamientoViewer';
 import { generarReportePDF } from '../utils/reportesPDF';
 
@@ -19,10 +19,62 @@ const RelevamientoViewer = ({ rol }) => {
     categoriasDisponibles,
     insumosMap,
     actualizarEquipo,
-    darDeBajaEquipo
+    darDeBajaEquipo,
+    darDeBajaEquipos
   } = useRelevamientoViewer();
   
   const esEditor = rol === 'auditor' || rol === 'admin';
+
+  // ESTADO PARA SELECCIÓN MÚLTIPLE (DEPURACIÓN / ELIMINACIÓN MASIVA)
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmandoBorradoMasivo, setConfirmandoBorradoMasivo] = useState(false);
+  const [eliminandoMasivo, setEliminandoMasivo] = useState(false);
+  const [mensajeNotificacion, setMensajeNotificacion] = useState(null);
+
+  const toggleSelectEquipo = (equipoId) => {
+    if (!equipoId) return;
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(equipoId)) next.delete(equipoId);
+      else next.add(equipoId);
+      return next;
+    });
+  };
+
+  const toggleSelectAgencia = (equipos) => {
+    const ids = equipos.map(e => e.equipo_id).filter(Boolean);
+    const allSelected = ids.length > 0 && ids.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        ids.forEach(id => next.delete(id));
+      } else {
+        ids.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const ejecutarBajaMasiva = async () => {
+    const idsArray = Array.from(selectedIds);
+    if (idsArray.length === 0) return;
+
+    setEliminandoMasivo(true);
+    setMensajeNotificacion(null);
+
+    const resultado = await darDeBajaEquipos(idsArray);
+    setEliminandoMasivo(false);
+
+    if (resultado.success) {
+      const cant = idsArray.length;
+      setSelectedIds(new Set());
+      setConfirmandoBorradoMasivo(false);
+      setMensajeNotificacion({ tipo: 'success', texto: `Se eliminaron ${cant} equipos correctamente.` });
+      setTimeout(() => setMensajeNotificacion(null), 4000);
+    } else {
+      setMensajeNotificacion({ tipo: 'error', texto: resultado.error || 'Error al eliminar equipos.' });
+    }
+  };
   
   const [agenciaSeleccionada, setAgenciaSeleccionada] = useState(null);
 
@@ -133,9 +185,27 @@ const RelevamientoViewer = ({ rol }) => {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#818cf8' }}>Ficha Técnica de Agencia</h2>
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: '#94a3b8' }}>ID {agenciaSeleccionada.id} - {agenciaSeleccionada.nombre}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {esEditor && (
+                  <input
+                    type="checkbox"
+                    checked={agenciaSeleccionada.equipos.length > 0 && agenciaSeleccionada.equipos.every(e => selectedIds.has(e.equipo_id))}
+                    ref={el => {
+                      if (el) {
+                        const alguno = agenciaSeleccionada.equipos.some(e => selectedIds.has(e.equipo_id));
+                        const todos = agenciaSeleccionada.equipos.length > 0 && agenciaSeleccionada.equipos.every(e => selectedIds.has(e.equipo_id));
+                        el.indeterminate = alguno && !todos;
+                      }
+                    }}
+                    onChange={() => toggleSelectAgencia(agenciaSeleccionada.equipos)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ef4444' }}
+                    title="Seleccionar / deseleccionar todos los equipos de esta agencia"
+                  />
+                )}
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#818cf8' }}>Ficha Técnica de Agencia</h2>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: '#94a3b8' }}>ID {agenciaSeleccionada.id} - {agenciaSeleccionada.nombre}</p>
+                </div>
               </div>
               <button onClick={() => setAgenciaSeleccionada(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#f8fafc', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
                 <X size={20} />
@@ -147,14 +217,15 @@ const RelevamientoViewer = ({ rol }) => {
                 .filter(eq => eq.categoria?.toUpperCase().trim() !== 'COMPONENTES')
                 .map((eq, idx) => {
                   const isComponente = eq.categoria?.toUpperCase().trim() === 'COMPONENTES';
+                  const isItemSelected = selectedIds.has(eq.equipo_id);
                 return (
                   <div 
                     key={idx} 
                     style={{ 
-                      backgroundColor: isComponente ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)', 
+                      backgroundColor: isItemSelected ? 'rgba(239, 68, 68, 0.15)' : isComponente ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)', 
                       padding: '12px 15px', 
                       borderRadius: '8px', 
-                      border: isComponente ? '1px dashed rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.05)',
+                      border: isItemSelected ? '1px solid #ef4444' : isComponente ? '1px dashed rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.05)',
                       opacity: isComponente ? 0.85 : 1,
                       marginLeft: isComponente ? '12px' : '0px',
                       transition: 'all 0.2s'
@@ -162,9 +233,18 @@ const RelevamientoViewer = ({ rol }) => {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        {esEditor && eq.equipo_id && (
+                          <input
+                            type="checkbox"
+                            checked={isItemSelected}
+                            onChange={() => toggleSelectEquipo(eq.equipo_id)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', marginTop: '2px' }}
+                            title="Marcar para eliminación masiva"
+                          />
+                        )}
                         {isComponente && <span style={{ display: 'inline-block', width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b', marginTop: '6px' }}></span>}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 'bold', color: isComponente ? '#94a3b8' : '#34d399', fontSize: isComponente ? '0.88rem' : '0.95rem', lineHeight: '1.2' }}>
+                          <span style={{ fontWeight: 'bold', color: isItemSelected ? '#fca5a5' : isComponente ? '#94a3b8' : '#34d399', fontSize: isComponente ? '0.88rem' : '0.95rem', lineHeight: '1.2' }}>
                             {insumosMap[eq.producto] || eq.producto || eq.categoria}
                           </span>
                           {insumosMap[eq.producto] && (
@@ -505,6 +585,9 @@ const RelevamientoViewer = ({ rol }) => {
                 bg: 'rgba(129, 140, 248, 0.1)'
               };
 
+              const todosAgenciaSeleccionados = agencia.equipos.length > 0 && agencia.equipos.every(e => selectedIds.has(e.equipo_id));
+              const algunoAgenciaSeleccionado = agencia.equipos.some(e => selectedIds.has(e.equipo_id));
+
               return (
                 <div key={agencia.idUnico} style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderLeft: `4px solid ${estilo.color}`, overflow: 'hidden' }}>
                   
@@ -552,10 +635,10 @@ const RelevamientoViewer = ({ rol }) => {
                         const isCpuOrServer = catUpper.includes("CPU") || catUpper.includes("SERVIDOR");
                         
                         return (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: idx === filteredArray.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.03)' }}>
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: idx === filteredArray.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.03)', borderRadius: '4px', paddingLeft: '4px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               {isCpuOrServer ? <Cpu size={14} color="#10b981"/> : <Monitor size={14} color="#818cf8"/>}
-                              <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>{insumosMap[eq.producto] || eq.producto || eq.categoria}</span>
+                              <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 'normal' }}>{insumosMap[eq.producto] || eq.producto || eq.categoria}</span>
                               {eq.nro_terminal && eq.nro_terminal !== 'N/A' && <span style={{ color: '#fbbf24', fontSize: '0.7rem' }}>#{eq.nro_terminal}</span>}
                             </div>
                             <span style={{ fontWeight: 'bold', color: '#f8fafc', fontSize: '0.85rem' }}>x{eq.cantidad}</span>
@@ -593,6 +676,91 @@ const RelevamientoViewer = ({ rol }) => {
           </div>
         )}
       </div>
+
+      {/* BANNER NOTIFICACIÓN */}
+      {mensajeNotificacion && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', zIndex: 100001,
+          padding: '12px 20px', borderRadius: '8px',
+          backgroundColor: mensajeNotificacion.tipo === 'success' ? '#10b981' : '#ef4444',
+          color: '#ffffff', fontWeight: 'bold', fontSize: '0.9rem',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+        }}>
+          {mensajeNotificacion.texto}
+        </div>
+      )}
+
+      {/* BARRA FLOTANTE DE ACCIONES MASIVAS */}
+      {selectedIds.size > 0 && esEditor && (
+        <div style={{
+          position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: '#1e293b', color: '#f8fafc',
+          padding: '12px 20px', borderRadius: '50px',
+          border: '1px solid #ef4444', boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', gap: '15px', zIndex: 99999, width: '90%', maxWidth: '450px', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+            <span style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+              {selectedIds.size}
+            </span>
+            <span>{selectedIds.size === 1 ? 'seleccionado' : 'seleccionados'}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}
+            >
+              Desmarcar
+            </button>
+            <button
+              onClick={() => setConfirmandoBorradoMasivo(true)}
+              style={{ background: '#ef4444', border: 'none', color: '#ffffff', padding: '6px 14px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <Trash2 size={14} /> Eliminar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMACIÓN BORRADO MASIVO */}
+      {confirmandoBorradoMasivo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1e293b', color: '#f8fafc', padding: '25px', borderRadius: '12px',
+            border: '1px solid #334155', width: '100%', maxWidth: '400px', textAlign: 'center',
+            borderTop: '4px solid #ef4444', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ marginBottom: '15px', color: '#ef4444', display: 'flex', justifyContent: 'center' }}>
+              <Trash2 size={36} />
+            </div>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>¿Eliminar {selectedIds.size} equipos?</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '0 0 20px 0', lineHeight: '1.4' }}>
+              Esta acción dará de baja los <strong>{selectedIds.size}</strong> equipos/insumos seleccionados.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setConfirmandoBorradoMasivo(false)}
+                disabled={eliminandoMasivo}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: 'rgba(255,255,255,0.05)', color: '#f8fafc', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={ejecutarBajaMasiva}
+                disabled={eliminandoMasivo}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#ffffff', cursor: eliminandoMasivo ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                {eliminandoMasivo ? <RefreshCw size={14} className="spin" /> : <Trash2 size={14} />}
+                {eliminandoMasivo ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

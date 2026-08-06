@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, Search, Monitor, Cpu, Server, Eye, Printer, FileText, X, Pencil, Save, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { RefreshCw, Search, Monitor, Cpu, Server, Eye, Printer, FileText, X, Pencil, Save, Trash2, CheckSquare, Square, Check } from 'lucide-react';
 import { useRelevamientoViewer } from '../hooks/useRelevamientoViewer';
 import { generarReportePDF } from '../utils/reportesPDF'; 
 
@@ -19,10 +19,86 @@ const RelevamientoViewerPanel = ({ rol }) => {
     categoriasDisponibles,
     insumosMap,
     actualizarEquipo,
-    darDeBajaEquipo
+    darDeBajaEquipo,
+    darDeBajaEquipos
   } = useRelevamientoViewer();
 
   const esEditor = rol === 'auditor' || rol === 'admin';
+
+  // ESTADO PARA SELECCIÓN MÚLTIPLE (DEPURACIÓN / ELIMINACIÓN MASIVA)
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmandoBorradoMasivo, setConfirmandoBorradoMasivo] = useState(false);
+  const [eliminandoMasivo, setEliminandoMasivo] = useState(false);
+  const [mensajeNotificacion, setMensajeNotificacion] = useState(null);
+
+  const toggleSelectEquipo = (equipoId) => {
+    if (!equipoId) return;
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(equipoId)) next.delete(equipoId);
+      else next.add(equipoId);
+      return next;
+    });
+  };
+
+  const toggleSelectAgencia = (equipos) => {
+    const ids = equipos.map(e => e.equipo_id).filter(Boolean);
+    const allSelected = ids.length > 0 && ids.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        ids.forEach(id => next.delete(id));
+      } else {
+        ids.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const todosVisiblesIds = useMemo(() => {
+    const ids = [];
+    agenciasAgrupadas.forEach(ag => {
+      ag.equipos.forEach(eq => {
+        if (eq.equipo_id) ids.push(eq.equipo_id);
+      });
+    });
+    return ids;
+  }, [agenciasAgrupadas]);
+
+  const todosVisiblesSeleccionados = todosVisiblesIds.length > 0 && todosVisiblesIds.every(id => selectedIds.has(id));
+
+  const toggleSelectTodoVisible = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (todosVisiblesSeleccionados) {
+        todosVisiblesIds.forEach(id => next.delete(id));
+      } else {
+        todosVisiblesIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const ejecutarBajaMasiva = async () => {
+    const idsArray = Array.from(selectedIds);
+    if (idsArray.length === 0) return;
+
+    setEliminandoMasivo(true);
+    setMensajeNotificacion(null);
+
+    const resultado = await darDeBajaEquipos(idsArray);
+    setEliminandoMasivo(false);
+
+    if (resultado.success) {
+      const cant = idsArray.length;
+      setSelectedIds(new Set());
+      setConfirmandoBorradoMasivo(false);
+      setMensajeNotificacion({ tipo: 'success', texto: `Se eliminaron ${cant} equipos correctamente.` });
+      setTimeout(() => setMensajeNotificacion(null), 4000);
+    } else {
+      setMensajeNotificacion({ tipo: 'error', texto: resultado.error || 'Error al eliminar equipos.' });
+    }
+  };
 
   // ESTADO PARA EL MODAL DE PREVISUALIZACIÓN
   const [agenciaSeleccionada, setAgenciaSeleccionada] = useState(null);
@@ -160,9 +236,27 @@ const RelevamientoViewerPanel = ({ rol }) => {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-md)', paddingBottom: '15px' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-blue)' }}>Ficha Técnica de Agencia</h2>
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>ID {agenciaSeleccionada.id} - {agenciaSeleccionada.nombre}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {esEditor && (
+                  <input
+                    type="checkbox"
+                    checked={agenciaSeleccionada.equipos.length > 0 && agenciaSeleccionada.equipos.every(e => selectedIds.has(e.equipo_id))}
+                    ref={el => {
+                      if (el) {
+                        const alguno = agenciaSeleccionada.equipos.some(e => selectedIds.has(e.equipo_id));
+                        const todos = agenciaSeleccionada.equipos.length > 0 && agenciaSeleccionada.equipos.every(e => selectedIds.has(e.equipo_id));
+                        el.indeterminate = alguno && !todos;
+                      }
+                    }}
+                    onChange={() => toggleSelectAgencia(agenciaSeleccionada.equipos)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ef4444' }}
+                    title="Seleccionar / deseleccionar todos los equipos de esta agencia"
+                  />
+                )}
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-blue)' }}>Ficha Técnica de Agencia</h2>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>ID {agenciaSeleccionada.id} - {agenciaSeleccionada.nombre}</p>
+                </div>
               </div>
               <button onClick={() => setAgenciaSeleccionada(null)} style={{ background: 'var(--bg-input)', border: 'none', color: 'var(--text-muted)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
                 <X size={20} />
@@ -174,14 +268,15 @@ const RelevamientoViewerPanel = ({ rol }) => {
                 .filter(eq => eq.categoria?.toUpperCase().trim() !== 'COMPONENTES')
                 .map((eq, idx) => {
                   const isComponente = eq.categoria?.toUpperCase().trim() === 'COMPONENTES';
+                  const isItemSelected = selectedIds.has(eq.equipo_id);
                 return (
                   <div 
                     key={idx} 
                     style={{ 
-                      backgroundColor: isComponente ? 'rgba(0, 0, 0, 0.02)' : 'var(--bg-input)', 
+                      backgroundColor: isItemSelected ? 'rgba(239, 68, 68, 0.08)' : isComponente ? 'rgba(0, 0, 0, 0.02)' : 'var(--bg-input)', 
                       padding: '12px 15px', 
                       borderRadius: '8px', 
-                      border: isComponente ? '1px dashed var(--border)' : '1px solid var(--border-md)',
+                      border: isItemSelected ? '1px solid #ef4444' : isComponente ? '1px dashed var(--border)' : '1px solid var(--border-md)',
                       opacity: isComponente ? 0.9 : 1,
                       marginLeft: isComponente ? '15px' : '0px',
                       transition: 'all 0.2s'
@@ -189,9 +284,18 @@ const RelevamientoViewerPanel = ({ rol }) => {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        {esEditor && eq.equipo_id && (
+                          <input
+                            type="checkbox"
+                            checked={isItemSelected}
+                            onChange={() => toggleSelectEquipo(eq.equipo_id)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ef4444', marginTop: '2px' }}
+                            title="Marcar para eliminación masiva"
+                          />
+                        )}
                         {isComponente && <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--text-hint)', marginTop: '8px' }}></span>}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 'bold', color: isComponente ? 'var(--text-muted)' : 'var(--success)', fontSize: isComponente ? '0.9rem' : '0.95rem', lineHeight: '1.2' }}>
+                          <span style={{ fontWeight: 'bold', color: isItemSelected ? '#ef4444' : isComponente ? 'var(--text-muted)' : 'var(--success)', fontSize: isComponente ? '0.9rem' : '0.95rem', lineHeight: '1.2' }}>
                             {insumosMap[eq.producto] || eq.producto || eq.categoria}
                           </span>
                           {insumosMap[eq.producto] && (
@@ -548,9 +652,12 @@ const RelevamientoViewerPanel = ({ rol }) => {
               No se encontraron agencias con la búsqueda actual.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '20px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '80px' }}>
               {agenciasAgrupadas.map(agencia => {
                 const colores = getEmpresaColors(agencia.empresa);
+                const todosAgenciaSeleccionados = agencia.equipos.length > 0 && agencia.equipos.every(e => selectedIds.has(e.equipo_id));
+                const algunoAgenciaSeleccionado = agencia.equipos.some(e => selectedIds.has(e.equipo_id));
+
                 return (
                   <div key={agencia.idUnico} style={{ border: `1px solid ${colores.border}`, borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-card)' }}>
                     
@@ -601,7 +708,7 @@ const RelevamientoViewerPanel = ({ rol }) => {
                           const isAio = catUpper.includes("AIO") || catUpper.includes("MONITOR");
                           
                           return (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < filteredArray.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < filteredArray.length - 1 ? '1px solid var(--border)' : 'none', borderRadius: '4px', margin: '2px 0', transition: 'background-color 0.2s' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 {isCpuOrServer ? (
                                   <Cpu size={14} color="var(--success)" />
@@ -659,6 +766,90 @@ const RelevamientoViewerPanel = ({ rol }) => {
         </div>
       </div>
       
+      {/* BANNER NOTIFICACIÓN DE NOTIFICACIONES */}
+      {mensajeNotificacion && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', zIndex: 100001,
+          padding: '12px 20px', borderRadius: '8px',
+          backgroundColor: mensajeNotificacion.tipo === 'success' ? '#10b981' : '#ef4444',
+          color: '#ffffff', fontWeight: 'bold', fontSize: '0.9rem',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          {mensajeNotificacion.texto}
+        </div>
+      )}
+
+      {/* BARRA FLOTANTE DE ACCIONES MASIVAS */}
+      {selectedIds.size > 0 && esEditor && (
+        <div style={{
+          position: 'fixed', bottom: '25px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--bg-card)', color: 'var(--text-main)',
+          padding: '12px 24px', borderRadius: '50px',
+          border: '1px solid #ef4444', boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)',
+          display: 'flex', alignItems: 'center', gap: '20px', zIndex: 99999
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '0.95rem' }}>
+            <span style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+              {selectedIds.size}
+            </span>
+            <span>{selectedIds.size === 1 ? 'equipo seleccionado' : 'equipos seleccionados'}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-md)', color: 'var(--text-muted)', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
+            >
+              Desmarcar todos
+            </button>
+            <button
+              onClick={() => setConfirmandoBorradoMasivo(true)}
+              style={{ background: '#ef4444', border: 'none', color: '#ffffff', padding: '8px 18px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)' }}
+            >
+              <Trash2 size={16} /> Eliminar seleccionados
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMACIÓN BORRADO MASIVO */}
+      {confirmandoBorradoMasivo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(10, 15, 30, 0.8)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card)', color: 'var(--text-main)', padding: '25px', borderRadius: '12px',
+            border: '1px solid var(--border-md)', width: '100%', maxWidth: '420px', textAlign: 'center',
+            borderTop: '4px solid #ef4444', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{ marginBottom: '15px', color: '#ef4444', display: 'flex', justifyContent: 'center' }}>
+              <Trash2 size={40} />
+            </div>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: 'bold' }}>¿Eliminar {selectedIds.size} equipos?</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 20px 0', lineHeight: '1.4' }}>
+              Esta acción dará de baja permanentemente los <strong>{selectedIds.size}</strong> equipos/insumos seleccionados de la base de datos.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setConfirmandoBorradoMasivo(false)}
+                disabled={eliminandoMasivo}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-md)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={ejecutarBajaMasiva}
+                disabled={eliminandoMasivo}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#ffffff', cursor: eliminandoMasivo ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                {eliminandoMasivo ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {eliminandoMasivo ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

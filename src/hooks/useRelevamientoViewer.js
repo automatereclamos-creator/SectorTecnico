@@ -173,6 +173,18 @@ export const useRelevamientoViewer = () => {
     return counts;
   }, [datosFiltrados]);
 
+  // Función para dar de baja varios equipos en lote
+  const darDeBajaEquipos = async (equipoIds) => {
+    try {
+      await storageService.darDeBajaEquipos(equipoIds);
+      await fetchData();
+      return { success: true };
+    } catch (err) {
+      console.error("Error dando de baja equipos masivos:", err);
+      return { success: false, error: err.message };
+    }
+  };
+
   return { 
     datos, 
     agenciasAgrupadas: agenciasFiltradas,
@@ -182,6 +194,7 @@ export const useRelevamientoViewer = () => {
     categoriasDisponibles,
     insumosMap,
     actualizarEquipo,
-    darDeBajaEquipo
+    darDeBajaEquipo,
+    darDeBajaEquipos
   };
 };

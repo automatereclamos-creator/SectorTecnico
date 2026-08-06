@@ -346,6 +346,16 @@ h1, h2, h3, h4, h5, h6, .topbar-title, .stat-value {
   color: #34d399;
 }
 
+.badge.tucuapuestas {
+  background: rgba(14, 165, 233, 0.12);
+  color: #38bdf8;
+}
+
+.badge.otros {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
 /* =========================================
    Card Content
 ========================================= */

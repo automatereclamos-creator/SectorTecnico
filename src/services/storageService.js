@@ -654,6 +654,43 @@ export const storageService = {
     if (error) throw error;
   },
 
+  /**
+   * Borrado masivo de varios equipos y sus componentes hijos.
+   */
+  darDeBajaEquipos: async (equipoIds) => {
+    if (!equipoIds || equipoIds.length === 0) return;
+
+    // 1. Eliminar componentes hijos en cascada
+    const { data: hijos, error: errHijos } = await supabase
+      .from('equipos')
+      .select('id')
+      .in('equipo_padre_id', equipoIds);
+
+    if (errHijos) {
+      console.error('Error buscando hijos para borrado masivo:', errHijos);
+    }
+
+    if (hijos && hijos.length > 0) {
+      const idsHijos = hijos.map(h => h.id);
+      const { error: errDelHijos } = await supabase
+        .from('equipos')
+        .delete()
+        .in('id', idsHijos);
+
+      if (errDelHijos) {
+        console.error('Error eliminando hijos en borrado masivo:', errDelHijos);
+      }
+    }
+
+    // 2. Eliminar los equipos seleccionados
+    const { error } = await supabase
+      .from('equipos')
+      .delete()
+      .in('id', equipoIds);
+
+    if (error) throw error;
+  },
+
   // ─── GUARDAR TAREA (reclamo / solución / relevamiento) ──────────────────────
 
   saveTarea: async (payload) => {

@@ -87,7 +87,7 @@ export const useMantenimientoForm = (userEmail = '', onModuloCerrado) => {
     setInputId(val);
     setInputUuid(null);
 
-    if (empresa === "Otros" || !empresa) {
+    if (!empresa) {
       setIdHint({ text: '', type: '', found: null });
       return;
     }

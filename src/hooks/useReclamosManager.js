@@ -154,11 +154,6 @@ export const useReclamosManager = () => {
     const val = e.target.value.trim();
     setFormData(prev => ({ ...prev, id: val }));
 
-    if (formData.empresa === "Otros") {
-      setIdHint({ text: '', type: '', found: null });
-      return;
-    }
-
     if (!formData.empresa) {
       setIdHint({ text: "Primero seleccioná la empresa", type: "err", found: null });
       return;
@@ -317,10 +312,6 @@ export const useReclamosManager = () => {
     const val = e.target.value.trim();
     setSolFormData(prev => ({ ...prev, id: val }));
 
-    if (solFormData.empresa === 'Otros') {
-      setSolIdHint({ text: '', type: '', found: null });
-      return;
-    }
     if (!solFormData.empresa) {
       setSolIdHint({ text: 'Primero seleccioná la empresa', type: 'err', found: null });
       return;
