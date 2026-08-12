@@ -1,6 +1,6 @@
 // src/components/ModalTracking.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Activity, ArrowDownRight, ArrowUpRight, Package, Check } from 'lucide-react';
+import { X, Activity, ArrowDownRight, ArrowUpRight, Package, Check, MapPin, Building2, ChevronRight } from 'lucide-react';
 
 const T = {
     bgMain: 'var(--bg-main)',
@@ -242,8 +242,35 @@ const ModalTracking = ({ equipo, onCancel, obtenerHistorialEquipo, procesarAsign
                         </div>
                     )}
 
+                    {/* BANDEROLA DE RUTA Y PRIMERA INSTALACIÓN */}
+                    {historial.length > 0 && (
+                        <div style={{
+                            backgroundColor: T.bgSurface,
+                            border: `1px solid ${T.borderMd}`,
+                            borderLeft: `4px solid ${T.accent}`,
+                            borderRadius: T.radiusSm,
+                            padding: '12px 16px',
+                            marginBottom: 20
+                        }}>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <MapPin size={13} color={T.accent} /> Ruta de Instalación (Origen a Destino)
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: T.accentIndigoBg, color: T.accentIndigo, padding: '4px 10px', borderRadius: T.radiusSm, fontWeight: 700 }}>
+                                    <Building2 size={14} /> 
+                                    1ª Agencia: {historial[historial.length - 1]?.agencias?.nombre || equipo.agencias?.nombre || 'Taller Central'} 
+                                    {historial[historial.length - 1]?.agencias?.id_agencia ? ` (#${historial[historial.length - 1]?.agencias?.id_agencia})` : ''}
+                                </div>
+                                <ChevronRight size={14} color={T.textMuted} />
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--success-bg, rgba(22,163,74,0.1))', color: T.success, padding: '4px 10px', borderRadius: T.radiusSm, fontWeight: 700 }}>
+                                    Ubicación Actual: {equipo.agencias?.nombre || 'TALLER / DEPÓSITO'}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <h4 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: '"Lexend", sans-serif' }}>
-                        Historial de Movimientos
+                        Historial de Movimientos / Ruta
                     </h4>
 
                     {loadingHistorial ? (
@@ -256,6 +283,7 @@ const ModalTracking = ({ equipo, onCancel, obtenerHistorialEquipo, procesarAsign
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {historial.map((mov, index) => {
                                 const isAlta = mov.tipo === 'ALTA';
+                                const isPrimera = index === historial.length - 1;
                                 const movColor = isAlta ? T.success : T.error;
                                 const Icon = isAlta ? ArrowDownRight : ArrowUpRight;
 
@@ -275,8 +303,13 @@ const ModalTracking = ({ equipo, onCancel, obtenerHistorialEquipo, procesarAsign
 
                                         <div style={{ flex: 1, paddingBottom: 8 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                                                <div style={{ fontWeight: 700, color: T.textMain, fontSize: '0.9rem', fontFamily: '"Lexend", sans-serif' }}>
+                                                <div style={{ fontWeight: 700, color: T.textMain, fontSize: '0.9rem', fontFamily: '"Lexend", sans-serif', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                                     {isAlta ? 'Asignado a' : 'Retirado de'} {mov.agencias?.nombre || 'Ubicación Interna'}
+                                                    {isPrimera && (
+                                                        <span style={{ fontSize: '0.68rem', fontWeight: 700, backgroundColor: T.accentIndigoBg, color: T.accentIndigo, padding: '2px 8px', borderRadius: '12px' }}>
+                                                            📍 Primera Instalación
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: T.textHint, whiteSpace: 'nowrap', marginLeft: 12 }}>
                                                     {new Date(mov.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}

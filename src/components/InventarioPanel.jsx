@@ -7,8 +7,9 @@ import {
   ScanLine, MousePointer, Keyboard, RefreshCw,
   ChevronDown, ChevronUp, Hash, Edit3, BarChart2,
   Building2, Zap, Activity, ArrowDownRight, ArrowUpRight,
+  Calendar, MapPin,
 } from 'lucide-react';
-import { useInventario } from '../hooks/useInventario';
+import { useInventario, getPrimeraInstalacion } from '../hooks/useInventario';
 import ModalTracking from './ModalTracking';
 
 // ─── MAPA DE TOKENS SEMÁNTICOS (SISTEMA DE DISEÑO PREMIUM) ───────────────────
@@ -208,6 +209,10 @@ const FilaEquipo = React.memo(({ eq, onBaja, onEditar, onPatrimonio, onTracking,
 
   const color = getColor(eq.categoria);
   const specs = eq.especificaciones || {};
+  const primeraInst = getPrimeraInstalacion(eq);
+  const fechaFormatted = eq.creado_en
+    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—';
 
   const handleGuardarPatrimonio = useCallback(async () => {
     if (!codigoInput.trim()) return;
@@ -259,7 +264,45 @@ const FilaEquipo = React.memo(({ eq, onBaja, onEditar, onPatrimonio, onTracking,
         )}
       </td>
 
-      {/* REFACTOR SEMÁNTICO: Código de Equipo */}
+      {/* 1ª Agencia donde fue instalado */}
+      <td style={tdStyle}>
+        {primeraInst ? (
+          <button
+            onClick={() => onTracking(eq)}
+            title="Ver ruta completa de este equipo"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              background: T.accentLight,
+              border: `1px solid ${T.accent}35`,
+              borderRadius: T.radiusSm,
+              padding: '4px 9px',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              color: T.accent,
+              transition: T.transition
+            }}
+          >
+            <Building2 size={13} />
+            <span>{primeraInst.nombre}</span>
+            {primeraInst.id_agencia && <span style={{ opacity: 0.75, fontWeight: 500 }}>#{primeraInst.id_agencia}</span>}
+          </button>
+        ) : (
+          <span style={{ fontSize: '0.75rem', color: T.textHint }}>—</span>
+        )}
+      </td>
+
+      {/* Fecha de Registro / Alta */}
+      <td style={tdStyle}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: T.textMuted, fontSize: '0.8rem', fontFamily: 'monospace' }}>
+          <Calendar size={12} color={T.textMuted} />
+          <span>{fechaFormatted}</span>
+        </div>
+      </td>
+
+      {/* Código de Equipo */}
       <td style={tdStyle}>
         {editandoPatrimonio ? (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -282,7 +325,7 @@ const FilaEquipo = React.memo(({ eq, onBaja, onEditar, onPatrimonio, onTracking,
       <td style={{ ...tdStyle, textAlign: 'right' }}>
         <div style={{ display: 'inline-flex', gap: 6 }}>
           <ActionBtn title="Editar especificaciones" hoverColor={T.accent} hoverBg={T.accentLight} onClick={() => onEditar(eq)}><Edit3 size={14} /></ActionBtn>
-          <ActionBtn title="Ver Hoja de Vida (Tracking)" hoverColor={T.accent} hoverBg={T.accentLight} onClick={() => onTracking(eq)}><Activity size={14} /></ActionBtn>
+          <ActionBtn title="Ver Hoja de Vida y Ruta (Tracking)" hoverColor={T.accent} hoverBg={T.accentLight} onClick={() => onTracking(eq)}><Activity size={14} /></ActionBtn>
           <ActionBtn title="Traspasar a Stock Central" hoverColor={T.warning} hoverBg="rgba(217, 119, 6, 0.08)" onClick={() => onBaja(eq)}><Package size={14} /></ActionBtn>
         </div>
       </td>
@@ -422,7 +465,9 @@ const GlobalSearchResults = ({
                 <tr style={{ borderBottom: `2px solid ${T.border}` }}>
                   <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>Categoría</th>
                   <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>Producto</th>
+                  <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>1ª Agencia</th>
                   <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>Ubicación Actual</th>
+                  <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>Fecha</th>
                   <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'left', fontFamily: '"Lexend", sans-serif' }}>Código</th>
                   <th style={{ padding: '11px 16px', textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 700, color: T.textMuted, textAlign: 'right', fontFamily: '"Lexend", sans-serif' }}>Acciones</th>
                 </tr>
@@ -431,6 +476,10 @@ const GlobalSearchResults = ({
                 {equipos.map(eq => {
                   const color = getColor(eq.categoria);
                   const specs = eq.especificaciones || {};
+                  const primeraInstGlobal = getPrimeraInstalacion(eq);
+                  const fechaGlobal = eq.creado_en
+                    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : '—';
                   
                   const empLower = String(eq.agencias?.empresa || '').toLowerCase();
                   const empColor = empLower.includes('alfa') ? '#ea580c' : empLower.includes('palpito') ? '#818cf8' : T.textMuted;
@@ -466,6 +515,28 @@ const GlobalSearchResults = ({
                         )}
                       </td>
 
+                      {/* 1ª Agencia */}
+                      <td style={tdStyle}>
+                        {primeraInstGlobal ? (
+                          <button
+                            onClick={() => onTracking(eq)}
+                            title="Ver ruta completa"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              background: T.accentLight, border: `1px solid ${T.accent}35`,
+                              borderRadius: T.radiusSm, padding: '4px 9px', cursor: 'pointer',
+                              fontSize: '0.78rem', fontWeight: 700, color: T.accent, transition: T.transition
+                            }}
+                          >
+                            <Building2 size={13} />
+                            <span>{primeraInstGlobal.nombre}</span>
+                            {primeraInstGlobal.id_agencia && <span style={{ opacity: 0.75, fontWeight: 500 }}>#{primeraInstGlobal.id_agencia}</span>}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: T.textHint }}>—</span>
+                        )}
+                      </td>
+
                       <td style={tdStyle}>
                         <button
                           onClick={() => {
@@ -497,6 +568,14 @@ const GlobalSearchResults = ({
                             {eq.agencias ? `${eq.agencias.empresa?.toUpperCase()} · #${eq.agencias.id_agencia}` : (eq.estado === 'EN TALLER' ? 'Oficina Técnica (1213)' : 'Stock Maestro (9999)')}
                           </span>
                         </button>
+                      </td>
+
+                      {/* Fecha */}
+                      <td style={tdStyle}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: T.textMuted, fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                          <Calendar size={12} color={T.textMuted} />
+                          <span>{fechaGlobal}</span>
+                        </div>
                       </td>
 
                       <td style={tdStyle}>
@@ -564,8 +643,8 @@ const InventarioPanel = () => {
     setCategoriaFiltro('TODOS');
     seleccionarEquipoGlobal(equipo);
   }, [seleccionarEquipoGlobal]);
-  const [ordenCol, setOrdenCol] = useState('categoria');
-  const [ordenAsc, setOrdenAsc] = useState(true);
+  const [ordenCol, setOrdenCol] = useState('creado_en');
+  const [ordenAsc, setOrdenAsc] = useState(false);
 
   const equiposMostrados = useMemo(() => {
     let lista = equipos;
@@ -603,6 +682,11 @@ const InventarioPanel = () => {
     }
 
     return [...lista].sort((a, b) => {
+      if (ordenCol === 'creado_en') {
+        const da = new Date(a.creado_en || 0).getTime();
+        const db = new Date(b.creado_en || 0).getTime();
+        return ordenAsc ? da - db : db - da;
+      }
       const va = String(a[ordenCol] ?? '').toLowerCase();
       const vb = String(b[ordenCol] ?? '').toLowerCase();
       return ordenAsc ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -871,6 +955,8 @@ const InventarioPanel = () => {
                         {[
                           { col: 'categoria', label: 'Categoría' },
                           { col: 'producto', label: 'Producto' },
+                          { col: 'primera_agencia', label: '1ª Agencia' },
+                          { col: 'creado_en', label: 'Fecha' },
                           { col: 'codigo_patrimonio', label: 'Código de Equipo' },
                         ].map(({ col, label, center }) => (
                           <ThCol key={col} col={col} label={label} center={center} ordenCol={ordenCol} ordenAsc={ordenAsc} onToggle={toggleOrden} />

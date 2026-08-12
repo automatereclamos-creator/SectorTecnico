@@ -4,6 +4,44 @@ import { supabase } from '../config/supabase';
 // Caché local en memoria: sobrevive re-renders, se limpia al desmontar el módulo
 const cache = new Map();
 
+/**
+ * Función auxiliar para obtener la primera agencia donde fue instalado un equipo.
+ * Revisa el primer movimiento registrado o la agencia actual como fallback.
+ */
+export const getPrimeraInstalacion = (equipo) => {
+  if (!equipo) return null;
+
+  if (Array.isArray(equipo.movimientos_equipos) && equipo.movimientos_equipos.length > 0) {
+    const movsOrdenados = [...equipo.movimientos_equipos].sort(
+      (a, b) => new Date(a.creado_en || 0) - new Date(b.creado_en || 0)
+    );
+    const primerMov = movsOrdenados.find(m => m.agencias && (m.agencias.nombre || m.agencias.id_agencia));
+    if (primerMov?.agencias) {
+      return {
+        nombre: primerMov.agencias.nombre,
+        empresa: primerMov.agencias.empresa,
+        id_agencia: primerMov.agencias.id_agencia,
+        id: primerMov.agencias.id,
+        fecha: primerMov.creado_en,
+        tipo: primerMov.tipo || 'ALTA'
+      };
+    }
+  }
+
+  if (equipo.agencias) {
+    return {
+      nombre: equipo.agencias.nombre,
+      empresa: equipo.agencias.empresa,
+      id_agencia: equipo.agencias.id_agencia,
+      id: equipo.agencias.id,
+      fecha: equipo.creado_en,
+      tipo: 'ALTA'
+    };
+  }
+
+  return null;
+};
+
 export const useInventario = () => {
   const [agenciaSeleccionada, setAgenciaSeleccionada] = useState(null);
   const [equipos, setEquipos] = useState([]);
@@ -194,10 +232,15 @@ export const useInventario = () => {
         const { data: dataAgencias, error: errAgencias } = await queryAgencias.limit(50);
         if (errAgencias) throw errAgencias;
 
-        // 2. Consultar Equipos
+        // 2. Consultar Equipos (ordenados por fecha, más nuevos primero, con historial de movimientos)
         let queryEquipos = supabase
           .from('equipos')
-          .select('*, agencias!inner(id, id_agencia, empresa, nombre)');
+          .select(`
+            *,
+            agencias!inner(id, id_agencia, empresa, nombre),
+            movimientos_equipos(id, tipo, condicion, creado_en, agencia_id, agencias(id, id_agencia, empresa, nombre))
+          `)
+          .order('creado_en', { ascending: false });
         
         if (busqueda.trim().length >= 2) {
           queryEquipos = queryEquipos.or(`codigo_patrimonio.ilike.%${busqueda}%,producto.ilike.%${busqueda}%,marca.ilike.%${busqueda}%,categoria.ilike.%${busqueda}%`);
@@ -241,9 +284,13 @@ export const useInventario = () => {
     try {
       let query = supabase
         .from('equipos')
-        .select('*')
+        .select(`
+          *,
+          agencias(id, id_agencia, empresa, nombre),
+          movimientos_equipos(id, tipo, condicion, creado_en, agencia_id, agencias(id, id_agencia, empresa, nombre))
+        `)
         .eq('agencia_id', agencia.id)
-        .order('categoria', { ascending: true });
+        .order('creado_en', { ascending: false });
 
       // FIX LOGICO: Las agencias comerciales solo muestran INSTALADOS. Las internas muestran todo.
       if (agencia.id_agencia !== '1213' && agencia.id_agencia !== '9999') {
@@ -582,7 +629,7 @@ export const useInventario = () => {
     procesarBaja, asignarPatrimonio, actualizarEquipo, refresh,
     busqueda, setBusqueda, agenciasResultados, equiposResultados, buscandoAgencias,
     agenciasTop, loadingTop, conteosGlobales, agenciasVirtuales,
-    buscarEquiposGlobal, obtenerHistorialEquipo, procesarAsignacion,
+    buscarEquiposGlobal, obtenerHistorialEquipo, procesarAsignacion, getPrimeraInstalacion,
     filtroEmpresa, setFiltroEmpresa,
     filtroCategoria, setFiltroCategoria,
     filtroEstado, setFiltroEstado,
