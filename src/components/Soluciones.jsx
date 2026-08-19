@@ -7,71 +7,36 @@ const Soluciones = () => {
   const [modalReporteOpen, setModalReporteOpen] = useState(false);
   const { soluciones, loading, filtro, setFiltro, paginaActual, setPaginaActual, totalPaginas, refresh } = useSoluciones();
 
-const formatearFecha = (fechaRaw) => {
-  if (!fechaRaw) return "-";
-  const str = String(fechaRaw).trim();
+// ✅ Formateo literal de la fecha: no pasa por new Date(), evitando el desfase UTC
+const formatearFecha = (fechaStr) => {
+  if (!fechaStr) return '-';
 
-  // 1. Si ya viene en formato DD/MM/YYYY
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-    return str.split(' ')[0];
+  // Toma únicamente "YYYY-MM-DD" eliminando cualquier sufijo T/hora
+  const soloFecha = String(fechaStr).split('T')[0].trim();
+  const partes = soloFecha.split('-');
+
+  if (partes.length === 3) {
+    const [anio, mes, dia] = partes;
+    return `${dia}/${mes}/${anio}`; // Retorna exactamente "DD/MM/YYYY"
   }
 
-  // 2. Si empieza como YYYY-MM-DD
-  const matchIso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (matchIso) {
-    const [, anio, mes, dia] = matchIso;
-    // ✅ CORRECCIÓN: Asumir que la fecha está en UTC y sumar un día si es necesario
-    // Si la fecha es de hoy y parece estar en UTC, sumamos 1 día
-    const fechaUTC = new Date(`${anio}-${mes}-${dia}T00:00:00Z`);
-    const fechaLocal = new Date(fechaUTC.getTime() + fechaUTC.getTimezoneOffset() * 60000);
-    
-    // Si la fecha local es un día después, usar esa
-    if (fechaLocal.getDate() !== parseInt(dia)) {
-      const diaLocal = String(fechaLocal.getDate()).padStart(2, '0');
-      const mesLocal = String(fechaLocal.getMonth() + 1).padStart(2, '0');
-      return `${diaLocal}/${mesLocal}/${fechaLocal.getFullYear()}`;
-    }
-    
-    return `${dia}/${mes}/${anio}`;
-  }
-
-  // 3. Fallback
-  try {
-    const fecha = new Date(str);
-    if (isNaN(fecha.getTime())) return str;
-    const dia = String(fecha.getUTCDate()).padStart(2, '0');
-    const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
-    const anio = fecha.getUTCFullYear();
-    return `${dia}/${mes}/${anio}`;
-  } catch (e) {
-    return str;
-  }
-};
-/**
- * Extrae la hora y minuto del Timestamp (HH:MM)
- */
-const formatearHora = (fechaRaw) => {
-  if (!fechaRaw) return "";
-  try {
-    const str = String(fechaRaw).trim();
-
-    // Buscar directamente patrón de hora HH:MM en la cadena de texto
-    const matchHora = str.match(/(\d{2}):(\d{2})/);
-    if (matchHora) {
-      return `${matchHora[1]}:${matchHora[2]}`;
-    }
-
-    const fecha = new Date(str);
-    if (isNaN(fecha.getTime())) return "";
-
-    const horas = String(fecha.getHours()).padStart(2, '0');
-    const minutos = String(fecha.getMinutes()).padStart(2, '0');
-    return `${horas}:${minutos}`;
-  } catch (e) {
-    return "";
-  }
+  return fechaStr;
 };
 
+// ✅ Formateo seguro de la hora de envío
+const formatearHora = (timestamp) => {
+  if (!timestamp) return null;
+  
+  // Si viene en formato ISO completo con hora
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return null;
+
+  return d.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
   /**
    * Asigna colores y etiquetas según la empresa
    */
