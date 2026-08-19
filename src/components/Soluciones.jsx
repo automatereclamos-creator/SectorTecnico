@@ -7,58 +7,57 @@ const Soluciones = () => {
   const [modalReporteOpen, setModalReporteOpen] = useState(false);
   const { soluciones, loading, filtro, setFiltro, paginaActual, setPaginaActual, totalPaginas, refresh } = useSoluciones();
 
- /**
- * Formatea cualquier string de fecha a DD/MM/YYYY evitando desfases de zona horaria.
+/**
+ * Formatea la fecha a (DD/MM/YYYY) sin importar la zona horaria del servidor o navegador.
  */
 const formatearFecha = (fechaRaw) => {
   if (!fechaRaw) return "-";
+  const str = String(fechaRaw).trim();
+
+  // 1. Si ya viene en formato DD/MM/YYYY (ej: "24/04/2026" o "24/04/2026 20:30")
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+    return str.split(' ')[0];
+  }
+
+  // 2. Si empieza como YYYY-MM-DD (ej: "2026-04-24", "2026-04-24T00:00:00.000Z", "2026-04-24 00:00:00")
+  // Extraemos directamente del texto sin usar Date() para evitar que la zona horaria reste un día
+  const matchIso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matchIso) {
+    const [, anio, mes, dia] = matchIso;
+    return `${dia}/${mes}/${anio}`;
+  }
+
+  // 3. Fallback para timestamps numéricos o fechas no estándar
   try {
-    const str = String(fechaRaw).trim();
-
-    // 1. Si ya viene formateado como "DD/MM/YYYY" o "DD/MM/YYYY HH:MM:SS", extraer solo la fecha
-    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-      return str.split(' ')[0];
-    }
-
-    // 2. Si viene como "YYYY-MM-DD" puro, formatear dividiendo el string para evitar desfase UTC
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-      const [anio, mes, dia] = str.split('-');
-      return `${dia}/${mes}/${anio}`;
-    }
-
-    // 3. Reemplazar espacio por 'T' para compatibilidad en Safari/Firefox ("YYYY-MM-DD HH:MM:SS")
-    const fecha = new Date(str.replace(' ', 'T'));
-    if (isNaN(fecha.getTime())) return fechaRaw;
-
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const anio = fecha.getFullYear();
+    const fecha = new Date(str);
+    if (isNaN(fecha.getTime())) return str;
+    
+    // Usamos getUTC* para asegurar que tome la fecha exacta ingresada
+    const dia = String(fecha.getUTCDate()).padStart(2, '0');
+    const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+    const anio = fecha.getUTCFullYear();
     return `${dia}/${mes}/${anio}`;
   } catch (e) {
-    return fechaRaw;
+    return str;
   }
 };
 
 /**
- * Extrae hora y minutos (HH:MM) soportando formatos ISO y cadenas planas.
+ * Extrae la hora y minuto del Timestamp (HH:MM)
  */
 const formatearHora = (fechaRaw) => {
   if (!fechaRaw) return "";
   try {
     const str = String(fechaRaw).trim();
 
-    // Normalizar espacio a 'T' para que Safari/Firefox parseen correctamente la fecha ISO
-    const fecha = new Date(str.replace(' ', 'T'));
-
-    if (isNaN(fecha.getTime())) {
-      // Fallback para strings planos "DD/MM/YYYY HH:MM:SS"
-      const partes = str.split(' ');
-      if (partes.length > 1) {
-        const horaPartes = partes[1].split(':');
-        if (horaPartes.length >= 2) return `${horaPartes[0]}:${horaPartes[1]}`;
-      }
-      return "";
+    // Buscar directamente patrón de hora HH:MM en la cadena de texto
+    const matchHora = str.match(/(\d{2}):(\d{2})/);
+    if (matchHora) {
+      return `${matchHora[1]}:${matchHora[2]}`;
     }
+
+    const fecha = new Date(str);
+    if (isNaN(fecha.getTime())) return "";
 
     const horas = String(fecha.getHours()).padStart(2, '0');
     const minutos = String(fecha.getMinutes()).padStart(2, '0');
