@@ -3,6 +3,37 @@ import { storageService } from '../services/storageService';
 
 const FILAS_POR_PAGINA = 15;
 
+/**
+ * Convierte texto de fecha/timestamp a milisegundos sin sufrir desfases de UTC
+ */
+const parseFechaToMs = (str) => {
+  if (!str) return 0;
+  const s = String(str).trim();
+
+  // 1. Formato DD/MM/YYYY o DD/MM/YYYY HH:MM:SS
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) {
+    const [fechaPart, horaPart] = s.split(' ');
+    const [dia, mes, anio] = fechaPart.split('/');
+    const [horas, mins, segs] = (horaPart || '00:00:00').split(':');
+    return new Date(Number(anio), Number(mes) - 1, Number(dia), Number(horas || 0), Number(mins || 0), Number(segs || 0)).getTime();
+  }
+
+  // 2. Formato YYYY-MM-DD o YYYY-MM-DD HH:MM:SS (sin Z de UTC)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const normalizado = s.replace(' ', 'T');
+    if (!normalizado.includes('Z') && !normalizado.includes('+')) {
+      const [fechaPart, horaPart] = normalizado.split('T');
+      const [anio, mes, dia] = fechaPart.split('-');
+      const [horas, mins, segs] = (horaPart || '00:00:00').split(':');
+      return new Date(Number(anio), Number(mes) - 1, Number(dia), Number(horas || 0), Number(mins || 0), Number(segs || 0)).getTime();
+    }
+    return new Date(normalizado).getTime();
+  }
+
+  const ms = new Date(s).getTime();
+  return isNaN(ms) ? 0 : ms;
+};
+
 export const useSoluciones = () => {
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,22 +78,14 @@ export const useSoluciones = () => {
              empresa.includes(searchStr);
     });
 
-    // 2. Ordenamiento Descendente Absoluto (Fecha + Hora exacta)
+    // 2. Ordenamiento Descendente Absoluto usando parseFechaToMs
     return filtrados.sort((a, b) => {
-      // Priorizamos el Timestamp porque trae la hora, minuto y segundo. 
-      // Si por alguna razón falta, usamos la Fecha Tarea de respaldo.
       const stringA = a.Timestamp || a.timestamp || a["Fecha Tarea"] || a.fechaTarea;
       const stringB = b.Timestamp || b.timestamp || b["Fecha Tarea"] || b.fechaTarea;
 
-      // Convertimos a milisegundos para una comparación matemática perfecta
-      const tiempoA = new Date(stringA).getTime();
-      const tiempoB = new Date(stringB).getTime();
-      
-      // Protegemos el código por si alguna celda del Excel está vacía o corrupta
-      if (isNaN(tiempoA)) return 1;  // Manda los errores al fondo de la lista
-      if (isNaN(tiempoB)) return -1; 
-      
-      // Restamos B - A para que el número más grande (más reciente) quede arriba
+      const tiempoA = parseFechaToMs(stringA);
+      const tiempoB = parseFechaToMs(stringB);
+
       return tiempoB - tiempoA;
     });
   }, [datos, filtro]);
