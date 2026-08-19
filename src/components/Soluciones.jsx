@@ -7,48 +7,66 @@ const Soluciones = () => {
   const [modalReporteOpen, setModalReporteOpen] = useState(false);
   const { soluciones, loading, filtro, setFiltro, paginaActual, setPaginaActual, totalPaginas, refresh } = useSoluciones();
 
-  /**
-   * Formatea el string ISO a formato legible (DD/MM/YYYY)
-   */
-  const formatearFecha = (fechaRaw) => {
-    if (!fechaRaw) return "-";
-    try {
-      const fecha = new Date(fechaRaw);
-      if (isNaN(fecha.getTime())) return fechaRaw;
-      const dia = String(fecha.getDate()).padStart(2, '0');
-      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-      const anio = fecha.getFullYear();
-      return `${dia}/${mes}/${anio}`;
-    } catch (e) {
-      return fechaRaw;
-    }
-  };
+ /**
+ * Formatea cualquier string de fecha a DD/MM/YYYY evitando desfases de zona horaria.
+ */
+const formatearFecha = (fechaRaw) => {
+  if (!fechaRaw) return "-";
+  try {
+    const str = String(fechaRaw).trim();
 
-  /**
-   * NUEVA FUNCIÓN: Extrae la hora y minuto del Timestamp (HH:MM)
-   */
-  const formatearHora = (fechaRaw) => {
-    if (!fechaRaw) return "";
-    try {
-      const fecha = new Date(fechaRaw);
-      
-      // Si el formato falla (ej: viene como texto plano "24/04/2026 20:38:11")
-      if (isNaN(fecha.getTime())) {
-        const partes = String(fechaRaw).split(' ');
-        if (partes.length > 1) {
-          const horaPartes = partes[1].split(':');
-          if (horaPartes.length >= 2) return `${horaPartes[0]}:${horaPartes[1]}`;
-        }
-        return "";
+    // 1. Si ya viene formateado como "DD/MM/YYYY" o "DD/MM/YYYY HH:MM:SS", extraer solo la fecha
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+      return str.split(' ')[0];
+    }
+
+    // 2. Si viene como "YYYY-MM-DD" puro, formatear dividiendo el string para evitar desfase UTC
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [anio, mes, dia] = str.split('-');
+      return `${dia}/${mes}/${anio}`;
+    }
+
+    // 3. Reemplazar espacio por 'T' para compatibilidad en Safari/Firefox ("YYYY-MM-DD HH:MM:SS")
+    const fecha = new Date(str.replace(' ', 'T'));
+    if (isNaN(fecha.getTime())) return fechaRaw;
+
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+  } catch (e) {
+    return fechaRaw;
+  }
+};
+
+/**
+ * Extrae hora y minutos (HH:MM) soportando formatos ISO y cadenas planas.
+ */
+const formatearHora = (fechaRaw) => {
+  if (!fechaRaw) return "";
+  try {
+    const str = String(fechaRaw).trim();
+
+    // Normalizar espacio a 'T' para que Safari/Firefox parseen correctamente la fecha ISO
+    const fecha = new Date(str.replace(' ', 'T'));
+
+    if (isNaN(fecha.getTime())) {
+      // Fallback para strings planos "DD/MM/YYYY HH:MM:SS"
+      const partes = str.split(' ');
+      if (partes.length > 1) {
+        const horaPartes = partes[1].split(':');
+        if (horaPartes.length >= 2) return `${horaPartes[0]}:${horaPartes[1]}`;
       }
-      
-      const horas = String(fecha.getHours()).padStart(2, '0');
-      const minutos = String(fecha.getMinutes()).padStart(2, '0');
-      return `${horas}:${minutos}`;
-    } catch (e) {
       return "";
     }
-  };
+
+    const horas = String(fecha.getHours()).padStart(2, '0');
+    const minutos = String(fecha.getMinutes()).padStart(2, '0');
+    return `${horas}:${minutos}`;
+  } catch (e) {
+    return "";
+  }
+};
 
   /**
    * Asigna colores y etiquetas según la empresa
