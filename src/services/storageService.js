@@ -3,6 +3,26 @@ import { supabase } from '../config/supabase';
 import { invalidarCacheAgencias } from './agenciasService';
 import { getRolesPorNombreMap } from './perfilesService';
 
+/**
+ * Convierte un string "YYYY-MM-DD" o Timestamp a un objeto Date en HORA LOCAL
+ * evitando que JS lo interprete como UTC medianoche y le reste 1 día.
+ */
+const parseFechaLocal = (fechaStr, esFinDeDia = false) => {
+  if (!fechaStr) return new Date();
+  if (fechaStr instanceof Date) return fechaStr;
+
+  const s = String(fechaStr).trim();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, anio, mes, dia] = match;
+    const date = new Date(Number(anio), Number(mes) - 1, Number(dia));
+    if (esFinDeDia) date.setHours(23, 59, 59, 999);
+    else date.setHours(0, 0, 0, 0);
+    return date;
+  }
+  return new Date(s);
+};
+
 const INSUMOS_DICT = {
   "42LB5600-SB": "TV 42",
   "50A641GSC": "TV MOD 50A641GSC",
@@ -127,18 +147,10 @@ const INSUMOS_DICT = {
   "X50AMDTV": "TV 50 RCA"
 };
 
-/**
- * Servicio central de datos — reemplaza la conexión a Google Sheets.
- * Cada método retorna datos en el formato que los hooks existentes esperan,
- * haciendo la traducción entre columnas de Supabase y los nombres legacy.
- */
 export const storageService = {
 
   // ─── RECLAMOS ────────────────────────────────────────────────────────────────
 
-  /**
-   * Trae reclamos con estado PENDIENTE, con datos de agencia incluidos.
-   */
   getReclamos: async () => {
     const { data, error } = await supabase
       .from('reclamos')
@@ -205,7 +217,6 @@ export const storageService = {
 
     if (error) throw error;
 
-    // Sincronizar teléfono con la tabla de agencias si está provisto
     if (datos.telefono && datos.telefono.trim() && data?.agencia_id) {
       await supabase
         .from('agencias')
@@ -226,10 +237,6 @@ export const storageService = {
 
   // ─── SOLUCIONES ──────────────────────────────────────────────────────────────
 
-  /**
-   * Trae el historial de soluciones combinando la tabla normalizada
-   * y la tabla temporal de migración (soluciones_temp).
-   */
   getSoluciones: async () => {
     // 1. Soluciones nuevas (tabla normalizada)
     const { data: solNuevas, error: e1 } = await supabase
@@ -279,37 +286,30 @@ export const storageService = {
       'Técnico 3': '',
     }));
 
-    // 3. Combinar y ordenar por fecha descendente
+    // 3. Combinar y ordenar por fecha descendente usando parseFechaLocal
     return [...nuevas, ...migradas].sort((a, b) => {
-      const ta = new Date(a.timestamp || a.fechaTarea).getTime() || 0;
-      const tb = new Date(b.timestamp || b.fechaTarea).getTime() || 0;
+      const ta = parseFechaLocal(a.timestamp || a.fechaTarea).getTime() || 0;
+      const tb = parseFechaLocal(b.timestamp || b.fechaTarea).getTime() || 0;
       return tb - ta;
     });
   },
 
-  /**
-   * Genera los datos para el reporte de soluciones en un rango de fechas.
-   */
   getReporteData: async (fechaDesde, fechaHasta, rolFiltro = 'Todos', filtroEmpresa = '', filtroAgenciaId = '') => {
-    // 1. Obtener todas las soluciones y filtrarlas
     const todasLasSoluciones = await storageService.getSoluciones();
     const rolesPorNombre = await getRolesPorNombreMap();
 
-    const fechaInicio = new Date(fechaDesde);
-    fechaInicio.setHours(0, 0, 0, 0);
-    const fechaFin = new Date(fechaHasta);
-    fechaFin.setHours(23, 59, 59, 999);
+    const fechaInicio = parseFechaLocal(fechaDesde, false);
+    const fechaFin = parseFechaLocal(fechaHasta, true);
 
     const solucionesFiltradas = todasLasSoluciones.filter(s => {
       const stringFecha = s.timestamp || s.fechaTarea;
       if (!stringFecha) return false;
-      const d = new Date(stringFecha);
+      const d = parseFechaLocal(stringFecha);
       if (isNaN(d.getTime())) return false;
 
       const inDateRange = d >= fechaInicio && d <= fechaFin;
       if (!inDateRange) return false;
 
-      // Filtrado por Rol
       if (rolFiltro !== 'Todos') {
         const tecnicos = [s['Técnico 1'], s['Técnico 2'], s['Técnico 3']].filter(Boolean);
         const tieneRol = tecnicos.some(t => {
@@ -336,7 +336,6 @@ export const storageService = {
 
     const totalSoluciones = solucionesFiltradas.length;
 
-    // Agrupar por agencia y por operador
     const agenciasMap = {};
     const operadoresMap = {};
     solucionesFiltradas.forEach(s => {
@@ -351,7 +350,6 @@ export const storageService = {
       }
       agenciasMap[agId].cantidad++;
 
-      // Agrupar por técnicos (cada solución suma +1 a cada técnico que participó)
       const tecnicos = [s['Técnico 1'], s['Técnico 2'], s['Técnico 3']].filter(t => t && t.trim() !== '');
       tecnicos.forEach(t => {
         const nombreTec = t.trim();
@@ -368,7 +366,6 @@ export const storageService = {
     const rankingAgencias = Object.values(agenciasMap).sort((a, b) => b.cantidad - a.cantidad).slice(0, 10);
     const rankingOperadores = Object.values(operadoresMap).sort((a, b) => b.cantidad - a.cantidad).slice(0, 10);
 
-    // 2. Obtener los insumos de las soluciones de la tabla nueva en ese rango
     const { data: insumosData, error: insumosError } = await supabase
       .from('soluciones_insumos')
       .select(`
@@ -379,7 +376,6 @@ export const storageService = {
       .gte('soluciones.creado_en', fechaInicio.toISOString())
       .lte('soluciones.creado_en', fechaFin.toISOString());
 
-    // 3. Obtener el diccionario de insumos para cruzar nombres (ya que no hay Foreign Key forzada)
     const { data: catalogoInsumos } = await supabase
       .from('insumos')
       .select('codigo, descripcion, nombre, marca');
@@ -387,7 +383,6 @@ export const storageService = {
     const dictInsumos = {};
     if (catalogoInsumos) {
       catalogoInsumos.forEach(ins => {
-        // Guardamos la mejor descripción disponible
         dictInsumos[ins.codigo] = `${ins.marca ? ins.marca + ' ' : ''}${ins.descripcion || ins.nombre || ins.codigo}`.trim();
       });
     }
@@ -396,7 +391,6 @@ export const storageService = {
     if (!insumosError && insumosData) {
       insumosData.forEach(item => {
         const codigo = item.insumo_codigo || 'SIN-CODIGO';
-        // Buscamos primero en el diccionario duro, luego en BD, si no usamos el código
         const desc = INSUMOS_DICT[codigo] || dictInsumos[codigo] || codigo;
 
         if (!insumosMap[codigo]) {
@@ -422,18 +416,10 @@ export const storageService = {
     };
   },
 
-  /**
-   * Obtiene y procesa los datos para el Reporte de Reclamos en un rango de fechas.
-   */
   getReporteReclamosData: async (fechaInicioStr, fechaFinStr, filtroEmpresa = '', filtroAgenciaId = '') => {
-    // 1. Convertir fechas y asegurar el día completo (00:00:00 a 23:59:59)
-    const fechaInicio = new Date(fechaInicioStr);
-    fechaInicio.setHours(0, 0, 0, 0);
+    const fechaInicio = parseFechaLocal(fechaInicioStr, false);
+    const fechaFin = parseFechaLocal(fechaFinStr, true);
 
-    const fechaFin = new Date(fechaFinStr);
-    fechaFin.setHours(23, 59, 59, 999);
-
-    // 2. Traer reclamos en el periodo con sus agencias
     const { data: reclamosData, error } = await supabase
       .from('reclamos')
       .select(`
@@ -476,14 +462,12 @@ export const storageService = {
 
     if (reclamosFiltrados.length > 0) {
       reclamosFiltrados.forEach(r => {
-        // Agrupar por operador (columna "informa" en la BD es el operador/carga)
         const operador = (r.informa || 'Sin Especificar').trim();
         if (!operadoresMap[operador]) {
           operadoresMap[operador] = { nombre: operador, cantidad: 0 };
         }
         operadoresMap[operador].cantidad++;
 
-        // Agrupar por agencia
         const agId = r.agencias?.id_agencia || 'S/E';
         if (!agenciasMap[agId]) {
           agenciasMap[agId] = {
@@ -495,9 +479,8 @@ export const storageService = {
         }
         agenciasMap[agId].cantidad++;
 
-        // Agrupar por día de la semana
         if (r.fecha_carga) {
-          const fecha = new Date(r.fecha_carga);
+          const fecha = parseFechaLocal(r.fecha_carga);
           const numDia = fecha.getDay();
           const nombreDia = nombresDias[numDia];
           if (!diasMap[nombreDia]) {
@@ -508,17 +491,14 @@ export const storageService = {
       });
     }
 
-    // Top 10 operadores
     const rankingOperadores = Object.values(operadoresMap)
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 10);
 
-    // Top 10 agencias
     const rankingAgencias = Object.values(agenciasMap)
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 10);
 
-    // Días de la semana (ordenados por cantidad de mayor a menor)
     const rankingDias = Object.values(diasMap)
       .sort((a, b) => b.cantidad - a.cantidad);
 
@@ -530,7 +510,7 @@ export const storageService = {
     };
   },
 
-  // ─── RELEVAMIENTOS (lee de equipos + agencias) ──────────────────────────────
+  // ─── RELEVAMIENTOS ──────────────────────────────────────────────────────────
 
   getRelevamientos: async () => {
     let allData = [];
@@ -585,10 +565,6 @@ export const storageService = {
     });
   },
 
-  /**
-   * Actualiza un equipo existente en la tabla 'equipos'.
-   * Solo disponible para roles auditor/admin.
-   */
   actualizarEquipo: async (equipoId, datos) => {
     const updatePayload = {};
     if (datos.categoria !== undefined) updatePayload.categoria = datos.categoria;
@@ -596,7 +572,6 @@ export const storageService = {
     if (datos.marca !== undefined) updatePayload.marca = datos.marca;
     if (datos.cantidad !== undefined) updatePayload.cantidad = parseInt(datos.cantidad) || 1;
 
-    // Construir especificaciones JSONB
     const specs = {};
     if (datos.procesador !== undefined) specs.procesador = datos.procesador || null;
     if (datos.disco !== undefined) specs.disco = datos.disco || null;
@@ -618,12 +593,7 @@ export const storageService = {
     if (error) throw error;
   },
 
-  /**
-   * Borrado físico de un equipo y sus componentes hijos.
-   * Primero elimina los hijos (equipo_padre_id) y luego el padre.
-   */
   darDeBajaEquipo: async (equipoId) => {
-    // 1. Eliminar componentes hijos primero (para evitar FK constraint)
     const { data: hijos, error: errHijos } = await supabase
       .from('equipos')
       .select('id')
@@ -645,7 +615,6 @@ export const storageService = {
       }
     }
 
-    // 2. Eliminar el equipo padre
     const { error } = await supabase
       .from('equipos')
       .delete()
@@ -654,13 +623,9 @@ export const storageService = {
     if (error) throw error;
   },
 
-  /**
-   * Borrado masivo de varios equipos y sus componentes hijos.
-   */
   darDeBajaEquipos: async (equipoIds) => {
     if (!equipoIds || equipoIds.length === 0) return;
 
-    // 1. Eliminar componentes hijos en cascada
     const { data: hijos, error: errHijos } = await supabase
       .from('equipos')
       .select('id')
@@ -682,7 +647,6 @@ export const storageService = {
       }
     }
 
-    // 2. Eliminar los equipos seleccionados
     const { error } = await supabase
       .from('equipos')
       .delete()
@@ -691,10 +655,9 @@ export const storageService = {
     if (error) throw error;
   },
 
-  // ─── GUARDAR TAREA (reclamo / solución / relevamiento) ──────────────────────
+  // ─── GUARDAR TAREA ──────────────────────────────────────────────────────────
 
   saveTarea: async (payload) => {
-    // ── RECLAMO ──
     if (payload.tipo === 'reclamo') {
       const agenciaId = await _resolveAgenciaId(payload.empresa, payload.id, payload.nombre);
 
@@ -709,7 +672,6 @@ export const storageService = {
       }]);
       if (error) throw error;
 
-      // Sincronizar teléfono con la tabla de agencias si está provisto
       if (payload.telefono && payload.telefono.trim()) {
         await supabase
           .from('agencias')
@@ -721,7 +683,6 @@ export const storageService = {
       return { result: 'reclamo_saved' };
     }
 
-    // ── RELEVAMIENTO ──
     if (payload.tipo === 'relevamiento') {
       const agenciaId = await _resolveAgenciaId(payload.empresa, payload.id_agencia, payload.nombre_agencia);
       const equipos = JSON.parse(payload.equipos);
@@ -751,7 +712,6 @@ export const storageService = {
     // ── SOLUCIÓN (default) ──
     const agenciaId = await _resolveAgenciaId(payload.empresa, payload.id, payload.nombre);
 
-    // 1. Insertar solución
     const { data: solData, error: solErr } = await supabase.from('soluciones').insert([{
       agencia_id: agenciaId,
       reclamo_id: payload.originRowId || null,
@@ -767,7 +727,6 @@ export const storageService = {
 
     const solucionId = solData.id;
 
-    // 2. Vincular técnicos
     const tecNombres = [payload.tecnico1, payload.tecnico2, payload.tecnico3].filter(Boolean);
     if (tecNombres.length > 0) {
       const { data: perfiles } = await supabase
@@ -781,7 +740,6 @@ export const storageService = {
       }
     }
 
-    // 3. Guardar insumos/materiales
     if (payload.materiales_consumidos && payload.materiales_consumidos !== '[]') {
       try {
         const materiales = JSON.parse(payload.materiales_consumidos);
@@ -802,7 +760,6 @@ export const storageService = {
       }
     }
 
-    // 4. Marcar reclamo como SOLUCIONADO
     if (payload.originRowId) {
       await supabase
         .from('reclamos')
@@ -818,19 +775,21 @@ export const storageService = {
     const agenciaId = payload.uuid || await _resolveAgenciaId(payload.empresa, payload.id, payload.nombre);
     if (!agenciaId) throw new Error("No se pudo resolver la agencia");
 
-    // 1. Insertar en la tabla 'mantenimientos'
+    // Fecha en hora local (YYYY-MM-DD)
+    const hoyLocal = new Date();
+    const fechaHoyStr = `${hoyLocal.getFullYear()}-${String(hoyLocal.getMonth() + 1).padStart(2, '0')}-${String(hoyLocal.getDate()).padStart(2, '0')}`;
+
     const { error: insErr } = await supabase.from('mantenimientos').insert([{
       agencia_id: agenciaId,
       observaciones: payload.observaciones || null,
       creado_por: payload.perfilId || null,
-      fecha: new Date().toISOString().split('T')[0] // Formato YYYY-MM-DD
+      fecha: fechaHoyStr
     }]);
     if (insErr) throw insErr;
 
-    // 2. Actualizar la tabla 'agencias'
     const { error: updErr } = await supabase.from('agencias').update({
       mantenimiento_realizado: true,
-      fecha_ultimo_mantenimiento: new Date().toISOString().split('T')[0]
+      fecha_ultimo_mantenimiento: fechaHoyStr
     }).eq('id', agenciaId);
     if (updErr) throw updErr;
 
@@ -839,9 +798,6 @@ export const storageService = {
 
   // ─── TAREAS ─────────────────────────────────────────────────────────────────
 
-  /**
-   * Trae todas las tareas (para el Panel Operativo), con datos de agencia y perfiles.
-   */
   getAllTareas: async () => {
     const { data, error } = await supabase
       .from('tareas')
@@ -869,9 +825,6 @@ export const storageService = {
     }));
   },
 
-  /**
-   * Trae tareas pendientes (para el panel del técnico).
-   */
   getTareasPendientes: async () => {
     const { data, error } = await supabase
       .from('tareas')
@@ -898,9 +851,6 @@ export const storageService = {
     }));
   },
 
-  /**
-   * Crea una nueva tarea.
-   */
   crearTarea: async (payload) => {
     const agenciaId = await _resolveAgenciaId(payload.empresa, payload.id, payload.nombre);
 
@@ -918,9 +868,6 @@ export const storageService = {
     return { result: 'tarea_saved' };
   },
 
-  /**
-   * Actualiza una tarea existente.
-   */
   actualizarTarea: async (id, datos) => {
     const updatePayload = {};
     if (datos.descripcion !== undefined) updatePayload.descripcion = datos.descripcion;
@@ -936,9 +883,6 @@ export const storageService = {
     if (error) throw error;
   },
 
-  /**
-   * Elimina una tarea permanentemente.
-   */
   eliminarTarea: async (id) => {
     const { error } = await supabase
       .from('tareas')
@@ -949,12 +893,10 @@ export const storageService = {
   },
 };
 
-// ─── Helper interno: busca o crea agencia_id ────────────────────────────────
 async function _resolveAgenciaId(empresa, idAgencia, nombre) {
   if (!empresa || !idAgencia) return null;
   const empNormalized = empresa.trim().toLowerCase();
 
-  // Buscar agencia existente
   const { data } = await supabase
     .from('agencias')
     .select('id')
@@ -965,7 +907,6 @@ async function _resolveAgenciaId(empresa, idAgencia, nombre) {
 
   if (data) return data.id;
 
-  // Si no existe, crearla
   const { data: nueva, error } = await supabase
     .from('agencias')
     .insert([{ empresa: empNormalized, id_agencia: String(idAgencia), nombre: nombre || '', activa: true }])
