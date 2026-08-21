@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTvDashboard } from '../hooks/useTvDashboard';
-import { AlertTriangle, ClipboardList, CheckCircle } from 'lucide-react';
-import { APP_TIMEZONE } from '../utils/timezone';
+import { AlertTriangle, ClipboardList, CheckCircle, User, Phone, Clock } from 'lucide-react';
+import { APP_TIMEZONE, formatearFechaHoraTZ } from '../utils/timezone';
 import '../styles.css';
 
 const TvDashboard = ({ onVolver }) => {
@@ -195,6 +195,19 @@ const TvDashboard = ({ onVolver }) => {
                   </div>
                   <div className="tv-item-problema">{r.informa}</div>
                   <div className="tv-item-agencia">{r.nombre}</div>
+                  <div className="tv-item-footer" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.85rem', color: 'var(--text-hint)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <User size={13} /> {r.carga || 'Técnico'}
+                    </span>
+                    {r.telefono && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Phone size={13} /> {r.telefono}
+                      </span>
+                    )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={13} /> {formatearFechaHoraTZ(r.fecha_carga)}
+                    </span>
+                  </div>
                 </div>
               ))
             )}
@@ -223,6 +236,19 @@ const TvDashboard = ({ onVolver }) => {
                   </div>
                   <div className="tv-item-problema">{t.descripcion}</div>
                   <div className="tv-item-agencia">{t.nombre}</div>
+                  <div className="tv-item-footer" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.85rem', color: 'var(--text-hint)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <User size={13} /> {t.creador || 'S/N'}
+                    </span>
+                    {t.contacto && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Phone size={13} /> {t.contacto}
+                      </span>
+                    )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={13} /> {formatearFechaHoraTZ(t.fecha_creacion)}
+                    </span>
+                  </div>
                 </div>
               ))
             )}

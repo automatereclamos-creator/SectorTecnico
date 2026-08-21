@@ -172,7 +172,8 @@ export const storageService = {
       telefono: r.telefono || '',
       horario: r.horario_contacto || '',
       carga: r.informa || '',
-      estado: r.estado
+      estado: r.estado,
+      fecha_carga: r.fecha_carga
     }));
   },
 
