@@ -4,6 +4,7 @@ import { getCalculatedTotal } from '../utils/timeUtils';
 import { useMateriales } from './useMateriales';
 import { fetchBomTemplates, getBomKey } from '../services/bomService';
 import { storageService } from '../services/storageService';
+import { hoyISO } from '../utils/timezone';
 
 export const useTaskForm = (userEmail = '') => {
   const initialFormState = {
@@ -11,7 +12,7 @@ export const useTaskForm = (userEmail = '') => {
     id: '',
     agencia_uuid: null,
     nombre: '',
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: hoyISO(),
     trabajo: '',
     horaInicio: '',
     horaFin: '',

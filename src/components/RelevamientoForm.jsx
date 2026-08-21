@@ -3,6 +3,7 @@ import { Plus, Minus, ClipboardList, Trash2, Eye, Check, X } from 'lucide-react'
 import { useRelevamiento } from '../hooks/useRelevamiento';
 import { supabase } from '../config/supabase';
 import { getBomKey } from '../services/bomService';
+import { formatearFechaTZ } from '../utils/timezone';
 
 const unidadesStyles = {
   wrapper: { marginTop: '14px', borderTop: '1px dashed rgba(5, 150, 105, 0.3)', paddingTop: '16px', width: '100%', display: 'flex', flexDirection: 'column' },
@@ -153,7 +154,7 @@ const RelevamientoForm = ({ userEmail }) => {
             <div style={{ overflowY: 'auto', paddingRight: '10px', flex: 1 }}>
               <div style={{ borderBottom: '2px dashed var(--border-md)', paddingBottom: '15px', marginBottom: '20px', textAlign: 'center' }}>
                 <h2 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', color: 'var(--text-main)', fontWeight: 'bold' }}>REMITO DE RELEVAMIENTO</h2>
-                <p style={{ margin: '4px 0', fontSize: '0.95rem' }}><strong>FECHA:</strong> {new Date().toLocaleDateString()}</p>
+                <p style={{ margin: '4px 0', fontSize: '0.95rem' }}><strong>FECHA:</strong> {formatearFechaTZ(new Date())}</p>
                 <p style={{ margin: '4px 0', fontSize: '0.95rem' }}><strong>RELEVADOR:</strong> {userEmail}</p>
               </div>
               <div style={{ marginBottom: '20px', backgroundColor: 'var(--bg-input)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-md)' }}>

@@ -5,6 +5,7 @@ import {
   User, AlertCircle, Building2, Calendar, RefreshCw
 } from 'lucide-react';
 import { useTareasManager } from '../hooks/useTareasManager';
+import { APP_TIMEZONE } from '../utils/timezone';
 
 const TareasManager = () => {
   const {
@@ -80,6 +81,7 @@ const TareasManager = () => {
     try {
       const fecha = new Date(fechaStr);
       return fecha.toLocaleString('es-AR', {
+        timeZone: APP_TIMEZONE,
         day: '2-digit',
         month: 'short',
         hour: '2-digit',

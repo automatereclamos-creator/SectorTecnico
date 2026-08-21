@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storageService';
 import { buscarAgencia, crearAgencia } from '../services/agenciasService';
 import { supabase } from '../config/supabase';
+import { formatearFechaTZ } from '../utils/timezone';
 
 // No initialTareaState needed, tasksList handles it dynamically
 
@@ -210,11 +211,7 @@ export const useTareasManager = () => {
     }
 
     // Generar formato de email
-    const fechaHoy = new Date().toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    const fechaHoy = formatearFechaTZ(new Date());
 
     let lines = [];
     lines.push(`TAREAS PARA SECTOR TÉCNICO - ${fechaHoy}`);
@@ -274,11 +271,7 @@ export const useTareasManager = () => {
 
       if (enviarMail) {
         // Redireccionar a Gmail
-        const fechaHoy = new Date().toLocaleDateString('es-AR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
+        const fechaHoy = formatearFechaTZ(new Date());
         const subject = `Tarea Para sector Tecnico ${fechaHoy}`;
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(previewContent)}`;
         window.open(gmailUrl, '_blank');
@@ -346,11 +339,7 @@ export const useTareasManager = () => {
       }
 
       // 3. Preparar la tarea para la previsualización del mail
-      const fechaHoy = new Date().toLocaleDateString('es-AR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      const fechaHoy = formatearFechaTZ(new Date());
 
       let lines = [];
       lines.push(`TAREAS PARA SECTOR TÉCNICO - ${fechaHoy}`);

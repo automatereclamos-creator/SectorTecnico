@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, RefreshCw, Clock, Calendar, User, Send, ChevronLeft, ChevronRight, BarChart2 } from 'lucide-react';
 import { useSoluciones } from '../hooks/useSoluciones';
 import ReporteSolucionesModal from './ReporteSolucionesModal';
+import { formatearHoraTZ } from '../utils/timezone';
 
 const Soluciones = () => {
   const [modalReporteOpen, setModalReporteOpen] = useState(false);
@@ -23,19 +24,10 @@ const formatearFecha = (fechaStr) => {
   return fechaStr;
 };
 
-// ✅ Formateo seguro de la hora de envío
+// ✅ Formateo seguro de la hora de envío (siempre en horario de Brasília/Argentina, UTC-3)
 const formatearHora = (timestamp) => {
   if (!timestamp) return null;
-  
-  // Si viene en formato ISO completo con hora
-  const d = new Date(timestamp);
-  if (isNaN(d.getTime())) return null;
-
-  return d.toLocaleTimeString('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  return formatearHoraTZ(timestamp) || null;
 };
   /**
    * Asigna colores y etiquetas según la empresa

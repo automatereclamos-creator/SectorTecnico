@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { storageService } from '../services/storageService';
 import { buscarAgencia, actualizarTelefonoAgencia } from '../services/agenciasService';
+import { hoyISO } from '../utils/timezone';
 
 const initialClaimState = {
   empresa: '',
@@ -389,7 +390,7 @@ export const useReclamosManager = () => {
         id: solFormData.id,
         nombre: solFormData.nombre,
         trabajo: solFormData.trabajo,
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: hoyISO(),
         hora_inicio: solFormData.horaInicio || null,
         hora_fin: solFormData.horaFin || null,
         tecnico1: solFormData.tecnico1 || '',

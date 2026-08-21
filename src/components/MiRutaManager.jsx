@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Map, ArrowUp, ArrowDown, Plus, X, Phone, User, Share2, Wrench } from 'lucide-react';
+import { formatearFechaTZ } from '../utils/timezone';
 import '../styles.css';
 
 const MiRutaManager = ({ userData, onNavigate }) => {
@@ -90,7 +91,7 @@ const MiRutaManager = ({ userData, onNavigate }) => {
   };
 
   const compartirWhatsApp = () => {
-    let texto = `*Mi Ruta Diaria - ${new Date().toLocaleDateString()}*\n\n`;
+    let texto = `*Mi Ruta Diaria - ${formatearFechaTZ(new Date())}*\n\n`;
     miRuta.forEach((item, index) => {
       texto += `*${index + 1}. [${item.empresa}] ID ${item.id}* - ${item.nombre}\n`;
       texto += `   Problema: ${item.informa || item.descripcion}\n\n`;

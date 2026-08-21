@@ -1,6 +1,7 @@
 // src/components/ModalTracking.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Activity, ArrowDownRight, ArrowUpRight, Package, Check, MapPin, Building2, ChevronRight } from 'lucide-react';
+import { APP_TIMEZONE } from '../utils/timezone';
 
 const T = {
     bgMain: 'var(--bg-main)',
@@ -312,7 +313,7 @@ const ModalTracking = ({ equipo, onCancel, obtenerHistorialEquipo, procesarAsign
                                                     )}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: T.textHint, whiteSpace: 'nowrap', marginLeft: 12 }}>
-                                                    {new Date(mov.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                                                    {new Date(mov.creado_en).toLocaleString('es-AR', { timeZone: APP_TIMEZONE, dateStyle: 'short', timeStyle: 'short' })}
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: T.textMuted }}>

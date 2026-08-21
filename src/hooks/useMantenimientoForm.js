@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { storageService } from '../services/storageService';
+import { formatearFechaTZ } from '../utils/timezone';
 
 export const useMantenimientoForm = (userEmail = '', onModuloCerrado) => {
   // Estado principal
@@ -163,7 +164,7 @@ export const useMantenimientoForm = (userEmail = '', onModuloCerrado) => {
       }
 
       // Armar mensaje de WhatsApp
-      const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const fecha = formatearFechaTZ(new Date());
       let lines = [];
       lines.push(`MANTENIMIENTO ${empresa.toUpperCase()}`);
       lines.push(`Fecha: ${fecha}`);

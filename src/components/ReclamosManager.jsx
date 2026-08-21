@@ -7,6 +7,7 @@ import {
 import { useReclamosManager } from '../hooks/useReclamosManager';
 import { getListaSoporte } from '../services/perfilesService';
 import ReporteReclamosModal from './ReporteReclamosModal';
+import { APP_TIMEZONE } from '../utils/timezone';
 
 const ReclamosManager = () => {
   const [listaTecnicos, setListaTecnicos] = useState([]);
@@ -406,6 +407,7 @@ const ReclamosManager = () => {
     try {
       const fecha = new Date(fechaStr);
       return fecha.toLocaleString('es-AR', {
+        timeZone: APP_TIMEZONE,
         day: '2-digit',
         month: 'short',
         hour: '2-digit',

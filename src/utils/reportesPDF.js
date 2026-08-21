@@ -1,6 +1,7 @@
 // src/utils/reportesPDF.js
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'; // <-- CAMBIO 1: Importamos la función directamente
+import { hoyISO, formatearFechaTZ } from './timezone';
 
 export const generarReportePDF = (agencias, tipo = 'TOTAL', agenciaId = null) => {
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -12,7 +13,7 @@ export const generarReportePDF = (agencias, tipo = 'TOTAL', agenciaId = null) =>
   
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
+  doc.text(`Fecha de emisión: ${formatearFechaTZ(new Date())}`, 14, 28);
   doc.text(`Tipo de reporte: ${tipo === 'TOTAL' ? 'Flota Completa' : `Agencia ID ${agenciaId}`}`, 14, 33);
   
   let startY = 45;
@@ -60,7 +61,7 @@ export const generarReportePDF = (agencias, tipo = 'TOTAL', agenciaId = null) =>
   // --- GUARDADO DEL ARCHIVO ---
   const nombreArchivo = tipo === 'INDIVIDUAL' 
     ? `Reporte_Agencia_${agenciaId}.pdf` 
-    : `Reporte_Inventario_Total_${new Date().toISOString().split('T')[0]}.pdf`;
+    : `Reporte_Inventario_Total_${hoyISO()}.pdf`;
     
   doc.save(nombreArchivo);
 };

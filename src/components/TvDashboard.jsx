@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTvDashboard } from '../hooks/useTvDashboard';
 import { AlertTriangle, ClipboardList, CheckCircle } from 'lucide-react';
+import { APP_TIMEZONE } from '../utils/timezone';
 import '../styles.css';
 
 const TvDashboard = ({ onVolver }) => {
@@ -162,7 +163,7 @@ const TvDashboard = ({ onVolver }) => {
             <div style={{ textAlign: 'right' }}>
               <div className="status-label">Hora Local</div>
               <div className="status-value val-time" style={{ fontSize: '1.4rem' }}>
-                {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {horaActual.toLocaleTimeString('es-AR', { timeZone: APP_TIMEZONE, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
             </div>
           </div>

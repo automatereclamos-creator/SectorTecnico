@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useInventario, getPrimeraInstalacion } from '../hooks/useInventario';
 import ModalTracking from './ModalTracking';
+import { APP_TIMEZONE } from '../utils/timezone';
 
 // ─── MAPA DE TOKENS SEMÁNTICOS (SISTEMA DE DISEÑO PREMIUM) ───────────────────
 const T = {
@@ -211,7 +212,7 @@ const FilaEquipo = React.memo(({ eq, onBaja, onEditar, onPatrimonio, onTracking,
   const specs = eq.especificaciones || {};
   const primeraInst = getPrimeraInstalacion(eq);
   const fechaFormatted = eq.creado_en
-    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { timeZone: APP_TIMEZONE, day: '2-digit', month: '2-digit', year: 'numeric' })
     : '—';
 
   const handleGuardarPatrimonio = useCallback(async () => {
@@ -478,7 +479,7 @@ const GlobalSearchResults = ({
                   const specs = eq.especificaciones || {};
                   const primeraInstGlobal = getPrimeraInstalacion(eq);
                   const fechaGlobal = eq.creado_en
-                    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    ? new Date(eq.creado_en).toLocaleDateString('es-AR', { timeZone: APP_TIMEZONE, day: '2-digit', month: '2-digit', year: 'numeric' })
                     : '—';
                   
                   const empLower = String(eq.agencias?.empresa || '').toLowerCase();
