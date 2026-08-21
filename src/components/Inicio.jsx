@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useInicio } from '../hooks/useInicio';
+import { formatearFechaHoraTZ } from '../utils/timezone';
 
 const Inicio = ({ setModuloActivo, userData }) => {
   const { loading, kpis, reclamosUrgentes, tareasUrgentes, metricas, refresh } = useInicio();
@@ -290,14 +291,20 @@ const Inicio = ({ setModuloActivo, userData }) => {
                     </div>
 
                     {/* Footer de información */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-hint)', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem', color: 'var(--text-hint)', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <UserIcon size={12} />
+                          Informa: {ticket.carga || 'Técnico'}
+                        </span>
+                        {ticket.horario && (
+                          <span>Horario: {ticket.horario}</span>
+                        )}
+                      </div>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <UserIcon size={12} />
-                        Informa: {ticket.carga || 'Técnico'}
+                        <Clock size={12} />
+                        Cargado: {formatearFechaHoraTZ(ticket.fechaCarga)}
                       </span>
-                      {ticket.horario && (
-                        <span>Horario: {ticket.horario}</span>
-                      )}
                     </div>
                   </div>
                 );
@@ -386,10 +393,14 @@ const Inicio = ({ setModuloActivo, userData }) => {
                     </div>
 
                     {/* Footer de información */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-hint)', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem', color: 'var(--text-hint)', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <UserIcon size={12} />
                         Creó: {tarea.creador}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={12} />
+                        Cargado: {formatearFechaHoraTZ(tarea.fechaCarga)}
                       </span>
                     </div>
                   </div>
